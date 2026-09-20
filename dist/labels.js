@@ -1,0 +1,7 @@
+export const facilityEnglish={wash:'Wash',break:'Dismantle',repair:'Repair',press:'Compress',compost:'Compost'};
+export const traitEnglish={fast:['Swift','Move +15%'],tough:['Tough','Max stamina +20%'],cool:['Heat resistant','Heat penalty −40%'],careful:['Meticulous','Sale value +10%']};
+export const upgradeEnglish={speed:['Swift Oni','All movement +10%'],wash:['Power wash','Washing speed +25%'],magnet:['Magnetic sorting','Carry cans & batteries +25% faster'],repair:['Repair master','Repair earnings +25%'],shade:['Shaded rest','Halve heat recovery penalty'],water:['Cold water','Full stamina at each Wave start'],eco:['Eco equipment','Heat from burning −15%'],buffer:['Tidy warehouse','All input buffers +1']};
+export const waveEnglish=[['Residential route','PET, cans & cardboard'],['Shopping street','More cardboard & containers'],['Restaurant district','Food waste & clothes added'],['Electronics day','Phones & batteries added'],['Residential route','More household waste'],['Electronics day','More electronics'],['Shopping street','More mixed waste & containers'],['Big collection day','All types, in large quantities']];
+export const weatherEnglish={normal:'Normal',hot:'Heatwave',rain:'Heavy rain',storm:'Storm'};
+export const speechEnglish={'まだ使える。':'Still useful.','……よし。':'…Good.','まだ使える！':'Still useful!','……。':'…','直る。街でもう一度。':'Repaired. Back in town.','お気に入りを、もう一度。':'A favorite, used again.'};
+export const bi=(ja,en)=>`${ja}<span class="en" lang="en">${en}</span>`;
