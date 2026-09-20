@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {Camera,bindGestures} from '../dist/camera.js';
+const c=new Camera();c.resize(390,560);assert.equal(c.zoom,1.6);c.zoomAt(1.25,195,280);assert.equal(c.zoom,2);const before=c.world(180,240);c.zoomAt(1.2,180,240);assert(Math.abs(c.world(180,240).x-before.x)<1e-8);c.pan(60,0);assert(c.panX>0);c.zoomAt(100);assert.equal(c.zoom,4);c.pan(9999,-9999);assert(Math.abs(c.panX)<9999);c.fit();assert.equal(c.zoom,1);assert.equal(c.panX,0);
+const handlers={},capture=new Set(),fake={addEventListener:(n,f)=>handlers[n]=f,getBoundingClientRect:()=>({left:0,top:0}),setPointerCapture:id=>capture.add(id),hasPointerCapture:id=>capture.has(id),releasePointerCapture:id=>capture.delete(id)};
+let taps=0;bindGestures(fake,c,()=>taps++);const ev=(id,x,y)=>({pointerId:id,clientX:x,clientY:y,pointerType:'touch',button:0});
+handlers.pointerdown(ev(1,100,100));handlers.pointerup(ev(1,100,100));assert.equal(taps,1);
+handlers.pointerdown(ev(1,100,100));handlers.pointermove(ev(1,150,100));handlers.pointerup(ev(1,150,100));assert.equal(taps,1);
+handlers.pointerdown(ev(1,100,100));handlers.pointerdown(ev(2,200,100));handlers.pointermove(ev(2,300,100));assert.equal(c.zoom,2);handlers.pointerup(ev(2,300,100));handlers.pointerup(ev(1,100,100));assert.equal(taps,1);
+handlers.pointerdown(ev(3,100,100));handlers.pointercancel(ev(3,100,100));assert.equal(taps,1);
+c.resize(844,250);c.fit();assert.equal(c.panY,0);assert.equal(c.zoom,1);console.log('PASS: anchored zoom, limits, resize, pan, tap, drag suppression, pinch, cancel');

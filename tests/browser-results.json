@@ -1,0 +1,126 @@
+{
+  "errors": [],
+  "run": [
+    {
+      "wave": 1,
+      "state": "upgrade",
+      "profit": 366,
+      "heat": 3.9
+    },
+    {
+      "wave": 2,
+      "state": "upgrade",
+      "profit": 715,
+      "heat": 5.939999999999998
+    },
+    {
+      "wave": 3,
+      "state": "upgrade",
+      "profit": 1541,
+      "heat": 12.030000000000003
+    },
+    {
+      "wave": 4,
+      "state": "upgrade",
+      "profit": 3976,
+      "heat": 21.780000000000005
+    },
+    {
+      "wave": 5,
+      "state": "upgrade",
+      "profit": 5429,
+      "heat": 20.54000000000001
+    },
+    {
+      "wave": 6,
+      "state": "upgrade",
+      "profit": 9311,
+      "heat": 20.530000000000012
+    },
+    {
+      "wave": 7,
+      "state": "upgrade",
+      "profit": 12633,
+      "heat": 34.21000000000002
+    },
+    {
+      "wave": 8,
+      "state": "result",
+      "profit": 16282,
+      "heat": 48.46
+    }
+  ],
+  "layouts": [
+    {
+      "width": 390,
+      "height": 844,
+      "portrait": "flex",
+      "overflow": false,
+      "canvas": {
+        "x": 0,
+        "y": 64,
+        "width": 390,
+        "height": 714,
+        "top": 64,
+        "right": 390,
+        "bottom": 778,
+        "left": 0
+      }
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "portrait": "none",
+      "overflow": false,
+      "canvas": {
+        "x": 0,
+        "y": 48,
+        "width": 844,
+        "height": 287,
+        "top": 48,
+        "right": 844,
+        "bottom": 335,
+        "left": 0
+      }
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "portrait": "none",
+      "overflow": false,
+      "canvas": {
+        "x": 0,
+        "y": 64,
+        "width": 1024,
+        "height": 638,
+        "top": 64,
+        "right": 1024,
+        "bottom": 702,
+        "left": 0
+      }
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "portrait": "none",
+      "overflow": false,
+      "canvas": {
+        "x": 0,
+        "y": 64,
+        "width": 1920,
+        "height": 950,
+        "top": 64,
+        "right": 1920,
+        "bottom": 1014,
+        "left": 0
+      }
+    }
+  ],
+  "storage": {
+    "profit": 16282,
+    "avoid": 0.6823204419889503,
+    "flow": 134,
+    "rank": "S",
+    "muted": false
+  }
+}
