@@ -23,3 +23,9 @@
 使用した編集指示：
 
 Edit target: supplied isolated 2D game truck sprite. Remove ALL rubbish and cargo from the open truck bed so it is completely empty. Preserve the exact green-and-white truck body, wheel positions, cabin, perspective, orientation facing right, outlines, proportions and existing canvas framing. The empty inside of the bed should be visible, with no bags, bottles, cardboard or appliances. Do not change vehicle design. Actual transparent background with alpha, no ground, no text, no shadow outside existing sprite. This is the empty-load variant for the same game truck; matching silhouette and alignment are essential.
+
+## v0.1.4 オープニング・人物・運搬物
+
+提供された開幕イラストを `dist/assets/opening-v014.webp` として使用。画像を起点に、作業着・黄色い角の5色小鬼、成人の赤い親方、通常/号令の表情を統一しました。左右は横向き2コマ、上下は背面/正面を切り替えます。運搬物は材質の分かる7種の独立アイコンです。
+
+組み込み画像生成を使用。全プロンプト・配布先・サイズは [ART-PROMPTS-v014.md](ART-PROMPTS-v014.md) に記録しています。
