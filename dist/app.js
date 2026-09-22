@@ -11,7 +11,7 @@ try{Object.assign(saved,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch{}
 const sound=new Sound(saved.muted);let lastState='',selected=null,mode=null,last=0,hudTimer=0,savedResult=false;
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(saved))}catch{}}
 function btn(ja,en,fn,cls='',disabled=false){const b=document.createElement('button');b.innerHTML=bi(ja,en);b.className=cls;b.disabled=disabled;b.onclick=fn;return b}
-function say(ja,en=speechEnglish[ja]||''){$('#caption').innerHTML=bi(`鬼 「${ja}」`,en)}
+function say(ja,en=speechEnglish[ja]||''){$('#caption').hidden=!ja;$('#caption').innerHTML=bi(`鬼 「${ja}」`,en)}
 function refresh(){lastState='';hudTimer=1;ui()}
 function closeDetail(){selected=null;$('#detail').replaceChildren()}
 function setMode(next){mode=next;closeDetail();say('空きマスをタップ。ドラッグで移動。','Tap an empty cell. Drag to pan.');renderTools()}
@@ -30,7 +30,7 @@ for(const o of onis){const f=game.facilities.find(f=>f.id===o.facility);const b=
 if(!onis.length)list.innerHTML=`<p>${bi('担当なし','No assigned Oni')}</p>`;d.append(list,btn('閉じる','Close',closeDetail))}
 function ui(){const state=game.state;if(lastState===state)return;lastState=state;const ov=$('#overlay'),ctl=$('#controls');ov.replaceChildren();ctl.replaceChildren();closeDetail();mode=null;renderTools();
 if(state==='title'){
-ov.innerHTML=`<div class="panel"><div class="eyebrow">RECYCLE ONI / v0.1.2</div><img class="title-hero" src="assets/oni-wash-v012.webp" alt="青い小鬼 / Blue Oni"><h1>リサイクルの鬼</h1><p>${bi('「まだ使える。」','Still useful.')}${bi('小鬼と施設を配置して、8回の回収日を乗り切れ。','Arrange your Oni and facilities. Survive 8 collection days.')}</p><div class="steps"><span>${bi('01 救出','Rescue')}</span><span>${bi('02 運んで処理','Carry & recycle')}</span><span>${bi('03 現場を強化','Upgrade')}</span></div><p>${bi('縦でも横でも。ピンチで拡大、ドラッグで移動。','Portrait or landscape. Pinch to zoom, drag to pan.')}</p><div id="start-slot"></div><p>BEST ¥${saved.profit.toLocaleString()} · ${bi(`回避 ${Math.round(saved.avoid*100)}%`,'Diversion')} · FLOW ${saved.flow} · ${saved.rank}</p></div>`;
+ov.innerHTML=`<div class="panel"><div class="eyebrow">RECYCLE ONI / v0.1.3</div><img class="title-hero" src="assets/oni-wash-v012.webp" alt="青い小鬼 / Blue Oni"><h1>リサイクルの鬼</h1><p>${bi('「まだ使える。」','Still useful.')}${bi('小鬼と施設を配置して、8回の回収日を乗り切れ。','Arrange your Oni and facilities. Survive 8 collection days.')}</p><div class="steps"><span>${bi('01 救出','Rescue')}</span><span>${bi('02 運んで処理','Carry & recycle')}</span><span>${bi('03 現場を強化','Upgrade')}</span></div><p>${bi('縦でも横でも。ピンチで拡大、ドラッグで移動。','Portrait or landscape. Pinch to zoom, drag to pan.')}</p><div id="start-slot"></div><p>BEST ¥${saved.profit.toLocaleString()} · ${bi(`回避 ${Math.round(saved.avoid*100)}%`,'Diversion')} · FLOW ${saved.flow} · ${saved.rank}</p></div>`;
 $('#start-slot').append(btn('現場に入る →','Enter the yard',()=>{sound.init();game.prepare();refresh()},'primary'));say('まだ使える。');return}
 if(state==='upgrade'){
 ov.innerHTML=`<div class="panel"><div class="eyebrow">WAVE ${game.wave} COMPLETE</div><h2>${bi('無料強化を1つ選ぶ','Choose one free upgrade')}</h2><p>${bi(`利益 +¥${game.summary.profit} ／ 焼却回避 ${Math.round(game.summary.avoid*100)}%`,'Profit / Waste diverted from burning')}</p><div class="cards"></div><p>${bi(`次：${W[game.wave].name} — ${W[game.wave].hint}`,`Next: ${WE[game.wave][0]} — ${WE[game.wave][1]}`)}</p></div>`;
@@ -45,7 +45,7 @@ const build=document.createElement('div');build.className='build-strip';
 for(const [type,f]of Object.entries(F)){const b=btn(`${f.name} ¥${f.price}`,FE[type],()=>setMode({type}),'',game.money<f.price||game.facilities.length>=C.maxFacilities);b.style.setProperty('--facility-color',palette[type]);b.insertAdjacentHTML('afterbegin',`<span class="facility-icon" aria-hidden="true">${icons[type]}</span>`);build.append(b)}
 build.append(btn(`小鬼 + ¥${C.oniPrice}`,'Hire Oni',()=>{game.recruit();refresh()},'',game.money<C.oniPrice||game.onis.length>=C.maxOni));
 build.append(btn(`土地 ¥${C.landPrice}`,'Expand land',()=>{game.expand();refresh()},'',game.land===14||game.money<C.landPrice));ctl.append(build);
-ctl.append(btn(`Wave ${game.wave+1} 開始 →`,'Start Wave',()=>{sound.init();game.startWave();refresh()},'primary start-wave'));say('小鬼一覧から、重なった小鬼も選べる。','Use the roster to select overlapping Oni.')}
+ctl.append(btn(`Wave ${game.wave+1} 開始 →`,'Start Wave',()=>{sound.init();game.startWave();refresh()},'primary start-wave'));say('')}
 if(state==='wave'){
 ctl.append(btn('👹 まだ使える！','Rally! · 6 seconds',()=>{if(game.command())refresh()},'primary rally',game.shoutUsed));const h=document.createElement('span');h.className='hint';h.innerHTML=bi('号令は1Waveに1回。配置変更はWave間。','Rally once per Wave. Reassign between Waves.');ctl.append(h);say('まだ使える。')}
 if(Object.keys(game.buffs).length){const chips=document.createElement('div');chips.className='chips';for(const [id,n]of Object.entries(game.buffs)){const s=document.createElement('span');s.innerHTML=bi(upgrades.find(u=>u.id===id).name+(n>1?` ×${n}`:''),UE[id][0]);chips.append(s)}ctl.append(chips)}}

@@ -4,7 +4,7 @@ export const icons={wash:'💧',break:'⚙',repair:'🔧',press:'◆',compost:'�
 export const palette={wash:'#59b9ea',break:'#ab80d8',repair:'#f4bc4a',press:'#ec7564',compost:'#8bb85d'};
 export class Art {
   constructor(onLoad=()=>{}){this.images=new Map();this.onLoad=onLoad;this.revision=0}
-  get(name){if(!this.images.has(name)){const im=new Image();this.images.set(name,im);im.onload=()=>{this.revision++;this.onLoad()};im.onerror=()=>{im.failed=true;this.revision++;this.onLoad()};im.src=`assets/${name}-v012.webp`}const im=this.images.get(name);return im.complete&&im.naturalWidth?im:null}
+  get(name){if(!this.images.has(name)){const im=new Image();this.images.set(name,im);im.onload=()=>{this.revision++;this.onLoad()};im.onerror=()=>{im.failed=true;this.revision++;this.onLoad()};im.src=`assets/${name}-${name==='truck-empty'?'v013':'v012'}.webp`}const im=this.images.get(name);return im.complete&&im.naturalWidth?im:null}
 }
 export function surface(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c}
 export function rounded(c,x,y,w,h,r,fill,stroke){c.beginPath();c.roundRect(x,y,w,h,r);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.stroke()}}
