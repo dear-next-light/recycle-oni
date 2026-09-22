@@ -1,1 +1,1 @@
-{"name":"recycle-oni","version":"0.1.1","private":true,"type":"module","scripts":{"start":"node server.mjs","test":"node tests/simulation.mjs && node tests/camera.mjs"}}
+{"name":"recycle-oni","version":"0.1.2","private":true,"type":"module","scripts":{"start":"node server.mjs","test":"node tests/simulation.mjs && node tests/camera.mjs"}}

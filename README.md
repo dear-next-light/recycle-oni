@@ -1,4 +1,4 @@
-# リサイクルの鬼 / RECYCLE ONI v0.1.1
+# リサイクルの鬼 / RECYCLE ONI v0.1.2
 
 「まだ使える。」小鬼と施設を配置し、焼却される前の資源を救い出す、8Waveの物流ローグライト。HTML / CSS / Vanilla JavaScript / Canvas 2D製。外部通信・ゲーム用依存パッケージ・バックエンド・ログインは不要です。Sail Bike Runから独立したプロジェクトです。
 
@@ -60,7 +60,7 @@ PET・缶は洗浄→圧縮。スマホは到着時に修理施設があれば�
 
 基本値は `dist/config.js` の `C`、`trashTypes`、`facilityTypes`、`traits`、`upgrades`、`waveDefinitions`、`weatherEffects` を編集します。強化の効果計算は `engine.js` の `speed`、`rate`、`heatEffect`、`sale`、`burn` に集約しています。
 
-現在の素材はCanvasの軽量な図形スプライトです。後から `dist/assets/` に画像を置き、`render.js` の各描画ループを読み込み済み画像の `drawImage()` に置き換えてください。施設座標・入口・当たり判定は `engine.js` のまま保ちます。
+素材は dist/assets/ のWebPです。背景・5施設・5色の小鬼・トラックを独立描画し、施設座標・入口・当たり判定は維持しています。制作方針は ART-DIRECTION.md を参照してください。
 
 ## 保存
 
@@ -78,4 +78,13 @@ localStorageキーは `recycle-oni-v01`。ベスト利益・回避率・FLOW・�
 
 
 
+
+
+## v0.1.2 ビジュアル更新
+
+街並みと道路、5色の工場・小鬼、積載トラックをWebP化。HUD、熱ゲージ、色別ルート、FLOWの軽い光、号令の顔付き演出を追加しました。ゲーム計算・Wave・能力・価格は変更していません。
+
+背景と施設は別Canvasへキャッシュし、変更時だけ再描画します。HUDは値の変化時だけ更新。使用素材を遅延ロードし、バージョン付き画像名と `_headers` で長期キャッシュします。画像12点合計約0.56MB、配布全体約0.63MB。高容量BGMや外部ライブラリは追加していません。
+
+`node tests/visual-server.mjs` で開発用確認画面（4188番）を起動できます。QAボタンは検証サーバーだけが挿入し、配布する `dist/` には入りません。8Waveの加速確認、5施設の表示確認、10秒の描画測定に使用します。公開するのは `dist/` のみです。
 
