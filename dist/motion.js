@@ -2,9 +2,11 @@
 export function runningPose(previous, oni, time, reduced=false){
  const dx=previous?oni.x-previous.x:0,dy=previous?oni.y-previous.y:0;
  const moving=!!previous&&!oni.rest&&Math.hypot(dx,dy)>.0001;
- const facing=Math.abs(dx)>.0001?(dx<0?-1:1):(previous?.facing||1);
+ const horizontal=Math.abs(dx)>=Math.abs(dy),direction=moving?(horizontal?(dx<0?'left':'right'):(dy<0?'up':'down')):(previous?.direction||'down');
+ const facing=direction==='left'?-1:direction==='right'?1:(previous?.facing||1);
  const stride=moving&&!reduced?Math.sin(time*18+oni.id):0;
- return{x:oni.x,y:oni.y,facing,moving,stride};
+ const frame=direction==='up'?2:direction==='down'?3:(moving&&!reduced?Math.floor(time*8)%2:0);
+ return{x:oni.x,y:oni.y,facing,moving,stride,direction,frame};
 }
 
 // Distinct silhouettes at sprite scale: no font/emoji dependency.
