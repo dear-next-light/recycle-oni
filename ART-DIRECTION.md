@@ -15,3 +15,11 @@
 保存先は dist/assets/。WebP圧縮（品質82付近）、透明素材はアルファ保持。背景1536×896、施設320×320、小鬼144×184、車384×220。ファイル名末尾 -v012.webp。全12点合計559,558 bytes。原寸の生成PNGは配布しません。
 
 動く要素は独立Canvas描画。施設と背景は静的Canvasへキャッシュし、小鬼は座標・傾き・上下動でアニメーションします。画像取得に失敗しても手描きCanvasの代替表示でゲームを継続できます。
+
+## v0.1.3 空荷トラック
+
+組み込みimage_gen編集を使用。保存先：dist/assets/truck-empty-v013.webp（384×220）。元のtruck-v012.webpを編集対象とし、他の素材は再生成していません。
+
+使用した編集指示：
+
+Edit target: supplied isolated 2D game truck sprite. Remove ALL rubbish and cargo from the open truck bed so it is completely empty. Preserve the exact green-and-white truck body, wheel positions, cabin, perspective, orientation facing right, outlines, proportions and existing canvas framing. The empty inside of the bed should be visible, with no bags, bottles, cardboard or appliances. Do not change vehicle design. Actual transparent background with alpha, no ground, no text, no shadow outside existing sprite. This is the empty-load variant for the same game truck; matching silhouette and alignment are essential.
