@@ -8,3 +8,4 @@ handlers.pointerdown(ev(1,100,100));handlers.pointermove(ev(1,150,100));handlers
 handlers.pointerdown(ev(1,100,100));handlers.pointerdown(ev(2,200,100));handlers.pointermove(ev(2,300,100));assert.equal(c.zoom,2);handlers.pointerup(ev(2,300,100));handlers.pointerup(ev(1,100,100));assert.equal(taps,1);
 handlers.pointerdown(ev(3,100,100));handlers.pointercancel(ev(3,100,100));assert.equal(taps,1);
 c.resize(844,250);c.fit();assert.equal(c.panY,0);assert.equal(c.zoom,1);console.log('PASS: anchored zoom, limits, resize, pan, tap, drag suppression, pinch, cancel');
+c.resize(1315,740);c.fit();assert.equal(c.view.y,0);assert(Math.abs(c.view.scaleY*14-740)<.00001);c.resize(390,620);c.fit();assert.equal(c.view.y,0);console.log("PASS: no unused space above the yard");
