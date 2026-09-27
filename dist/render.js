@@ -57,7 +57,12 @@ export class Renderer {
  ctx.fillStyle='#38483b48';ctx.beginPath();ctx.ellipse(x,y+.27,.27,.1,0,0,Math.PI*2);ctx.fill();
  if(selected?.kind==='oni'&&selected.id===o.id){ctx.strokeStyle='#fff1a1';ctx.lineWidth=.05;ctx.beginPath();ctx.ellipse(x,y+.27,.39,.16,0,0,Math.PI*2);ctx.stroke()}
  const pose=runningPose(this.poses.get(o),o,this.clock,this.reduced);this.poses.set(o,pose);
- const im=this.art.get('run-'+o.type);if(im){const sw=im.naturalWidth/4;ctx.save();ctx.translate(x,y+bob);if(pose.direction==='left')ctx.scale(-1,1);ctx.drawImage(im,pose.frame*sw,0,sw,im.naturalHeight,-.53,-.96,1.06,1.3);ctx.restore()}else{const idle=this.art.get('oni-'+o.type);if(idle)ctx.drawImage(idle,x-.42,y-.88,.84,1.22)}
+ const im=this.art.get('run-'+o.type);if(im){const sw=im.naturalWidth/4;ctx.save();ctx.translate(x,y+bob);if(pose.direction==='left')ctx.scale(-1,1);if(pose.moving&&!this.reduced&&(pose.direction==='up'||pose.direction==='down')){
+ const sh=im.naturalHeight,cut=.68,sx=pose.frame*sw;
+ // Swing the two lower-leg regions independently; the torso covers the hip seam.
+ for(const side of [-1,1]){const lift=pose.stride*side;ctx.save();ctx.translate(side*.20,-.04);ctx.rotate(lift*.14);ctx.drawImage(im,sx+(side===1?sw/2:0),sh*cut,sw/2,sh*(1-cut),(side===1?0:-.53)-side*.20,-.96+1.3*cut+.04+lift*.055,.53,1.3*(1-cut));ctx.restore()}
+ ctx.drawImage(im,sx,0,sw,sh*cut,-.53,-.96,1.06,1.3*cut+.025);
+ }else ctx.drawImage(im,pose.frame*sw,0,sw,im.naturalHeight,-.53,-.96,1.06,1.3);ctx.restore()}else{const idle=this.art.get('oni-'+o.type);if(idle)ctx.drawImage(idle,x-.42,y-.88,.84,1.22)}
  if(o.carry){const cargo=this.art.get('cargo'),types=['pet','can','card','cloth','phone','battery','food'],i=types.indexOf(o.carry.type),cx=x+(pose.direction==='left'?-.37:.37),cy=y-.22+bob;
  if(cargo){const sw=cargo.naturalWidth/4,sh=cargo.naturalHeight/2;ctx.drawImage(cargo,(i%4)*sw,Math.floor(i/4)*sh,sw,sh,cx-.35,cy-.4,.7,.8)}else drawCargo(ctx,o.carry.type,cx,cy);text(T[o.carry.type].name,x,y+.57,.18,'#fff5d2')}
 

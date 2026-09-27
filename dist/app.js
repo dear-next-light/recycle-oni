@@ -30,17 +30,17 @@ for(const o of onis){const f=game.facilities.find(f=>f.id===o.facility);const b=
 if(!onis.length)list.innerHTML=`<p>${bi('担当なし','No assigned Oni')}</p>`;d.append(list,btn('閉じる','Close',closeDetail))}
 function ui(){const state=game.state;if(lastState===state)return;lastState=state;const ov=$('#overlay'),ctl=$('#controls');ov.replaceChildren();ctl.replaceChildren();closeDetail();mode=null;renderTools();
 if(state==='title'){
-ov.innerHTML='<div class="panel opening-panel"><button class="opening-art" id="opening-art" aria-label="リサイクルの鬼を始める / Play RECYCLE ONI"><img src="assets/opening-v014.webp" alt="リサイクルの鬼 / RECYCLE ONI — まだ使える。小鬼と親方のリサイクル拠点"></button><div class="opening-footer"><div id="start-slot"></div><div><b>RECYCLE ONI / v0.1.4</b><p>小鬼と施設を配置して8回の回収日へ。<br>Arrange your yard. Survive 8 collection days.</p></div></div></div>';
+ov.innerHTML='<div class="panel opening-panel"><button class="opening-art" id="opening-art" aria-label="ブラウザで今すぐプレイ / Play Now in Your Browser"><img src="assets/opening-v014.webp" alt="リサイクルの鬼 / RECYCLE ONI — まだ使える。小鬼と親方のリサイクル拠点"></button><div class="opening-footer"><div><b>RECYCLE ONI / v0.1.5</b><p>小鬼と施設を配置して8回の回収日へ。<br>Arrange your yard. Survive 8 collection days.</p></div></div></div>';
 $('#opening-art').onclick=()=>{sound.init();game.prepare();refresh()};
 ov.querySelector('.opening-footer').insertAdjacentHTML('beforeend',`<small>BEST ¥${saved.profit.toLocaleString()}<br>回避 / Diversion ${Math.round(saved.avoid*100)}% · FLOW ${saved.flow} · ${saved.rank}</small>`);
-$('#start-slot').append(btn('現場に入る →','Enter the yard',()=>{sound.init();game.prepare();refresh()},'primary'));say('まだ使える。');return}
+say('まだ使える。');return}
 if(state==='upgrade'){
 ov.innerHTML=`<div class="panel"><div class="eyebrow">WAVE ${game.wave} COMPLETE</div><h2>${bi('無料強化を1つ選ぶ','Choose one free upgrade')}</h2><p>${bi(`利益 +¥${game.summary.profit} ／ 焼却回避 ${Math.round(game.summary.avoid*100)}%`,'Profit / Waste diverted from burning')}</p><div class="cards"></div><p>${bi(`次：${W[game.wave].name} — ${W[game.wave].hint}`,`Next: ${WE[game.wave][0]} — ${WE[game.wave][1]}`)}</p></div>`;
 for(const u of game.choices){const b=btn('','',()=>{game.choose(u.id);refresh()});b.innerHTML=`<strong>${bi(u.name,UE[u.id][0])}</strong><span>${bi(u.desc,UE[u.id][1])}</span>`;$('.cards').append(b)}return}
 if(state==='result'){
 if(!savedResult){savedResult=true;saved.profit=Math.max(saved.profit,game.profit);saved.avoid=Math.max(saved.avoid,game.rescued/Math.max(1,game.total));saved.flow=Math.max(saved.flow,game.maxFlow);saved.rank=['S','A','B','C'][Math.min(['S','A','B','C'].indexOf(saved.rank),['S','A','B','C'].indexOf(game.rank))];persist()}
-ov.innerHTML=`<div class="panel"><span class="rank">${game.rank}</span><div class="eyebrow">${game.clear?'ALL 8 WAVES CLEAR':'RUN FINISHED'}</div><h2>${bi(game.clear?'……よし。':'小鬼たちは、ひと休み。',game.clear?'…Good.':'The Oni need a rest.')}</h2><div class="stats"><div>${bi('総利益','TOTAL PROFIT')}<b>¥${game.profit.toLocaleString()}</b></div><div>${bi('焼却回避率','Waste diverted')}<b>${Math.round(game.rescued/Math.max(1,game.total)*100)}%</b></div><div>${bi('最終 地球の熱','Final planet heat')}<b>${game.heat.toFixed(1)} / 100</b></div><div>${bi('最大 ONI FLOW','Best combo')}<b>×${game.maxFlow}</b></div><div>${bi('救出したゴミ','Items rescued')}<b>${game.rescued}</b></div></div><div id="replay"></div></div>`;
-$('#replay').append(btn('もう一度遊ぶ','Play again',()=>{game.reset();savedResult=false;renderer.camera.fit();refresh()},'primary'));return}
+ov.innerHTML=`<div class="panel"><span class="rank">${game.rank}</span><div class="eyebrow">${game.clear?'ALL 8 WAVES CLEAR':'RUN FINISHED'}</div><h2>${bi(game.clear?'……よし。':'小鬼たちは、ひと休み。',game.clear?'…Good.':'The Oni need a rest.')}</h2><div class="stats"><div>${bi('総利益','TOTAL PROFIT')}<b>¥${game.profit.toLocaleString()}</b></div><div>${bi('焼却回避率','Waste diverted')}<b>${Math.round(game.rescued/Math.max(1,game.total)*100)}%</b></div><div>${bi('最終 地球の熱','Final planet heat')}<b>${game.heat.toFixed(1)} / 100</b></div><div>${bi('最大 ONI FLOW','Best combo')}<b>×${game.maxFlow}</b></div><div>${bi('救出したゴミ','Items rescued')}<b>${game.rescued}</b></div></div><div id="replay" class="result-actions"></div><p id="share-status" role="status" aria-live="polite"></p><div id="share-fallback"></div><div id="creator-link"></div></div>`;
+$('#replay').append(btn('もう一度遊ぶ','Play again',()=>{game.reset();savedResult=false;renderer.camera.fit();refresh()},'primary'));setupResultSharing();return}
 if(state==='prep'){
 const hint=document.createElement('span');hint.className='hint';hint.innerHTML=bi(`次：${W[game.wave].name} ｜ ${W[game.wave].hint}`,`Next: ${WE[game.wave][0]} · ${WE[game.wave][1]}`);ctl.append(hint);
 const build=document.createElement('div');build.className='build-strip';
@@ -88,3 +88,18 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000||0);last=now;if(!docum
 if(game.state==='wave'||now-lastDraw>=32){renderer.draw(game,selected,mode);lastDraw=now}hudTimer+=dt;if(hudTimer>.2){hudTimer=0;updateHud()}}
 requestAnimationFrame(frame)}
 ui();updateHud();requestAnimationFrame(frame);
+
+function setupResultSharing(){
+ const creator=document.createElement('a');creator.href='https://dear-next-light.pages.dev/';creator.target='_blank';creator.rel='noopener noreferrer';creator.className='creator-link';creator.innerHTML=bi('DearNextLightへ →','Visit DearNextLight');$('#creator-link').append(creator);
+ const text=`リサイクルの鬼 / RECYCLE ONI\n${game.clear?'8Waveクリア！ / All 8 waves clear!':'Wave '+game.wave+' / Run finished'} · Rank ${game.rank}\n利益 / Profit ¥${game.profit.toLocaleString()} · 焼却回避 / Waste diverted ${Math.round(game.rescued/Math.max(1,game.total)*100)}% · ONI FLOW ×${game.maxFlow}`;
+ const url='https://recycle-oni.pages.dev/';
+ const share=btn('結果をシェア','Share results',async()=>{
+  const status=$('#share-status');share.disabled=true;
+  try{
+   if(navigator.share){try{await navigator.share({title:'リサイクルの鬼 / RECYCLE ONI',text,url});status.textContent='共有しました / Shared';return}catch(error){if(error.name==='AbortError'){status.textContent='';return}}}
+   try{await navigator.clipboard.writeText(text+'\n'+url);status.textContent='結果とURLをコピーしました / Results and link copied'}catch{
+    const area=document.createElement('textarea');area.readOnly=true;area.value=text+'\n'+url;area.setAttribute('aria-label','共有用テキスト / Text to share');$('#share-fallback').replaceChildren(area);area.focus();area.select();status.textContent='このテキストをコピーして共有できます / Copy this text to share';
+   }
+  }finally{share.disabled=false}
+ });$('#replay').append(share);
+}
