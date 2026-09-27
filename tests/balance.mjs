@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {Game} from '../dist/engine.js';
 import {waveDefinitions as W,C} from '../dist/config.js';
 import {runningPose} from '../dist/motion.js';
-const current=W.map(w=>w.load),old=[5,6,7,8,9,10,11,13];
-assert.deepEqual(current.slice(0,4),old.slice(0,4));
+const current=W.map(w=>w.load),old=[5,6,7,8,12,13,15,17];
+assert.deepEqual(current.slice(0,7),old.slice(0,7));
 function run(seed,loads){
  W.forEach((w,i)=>w.load=loads[i]);
  const rng=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
@@ -25,8 +25,8 @@ try{
  const summary=loads=>{const results=seeds.map(s=>run(s,loads));return{cleared:results.filter(r=>r.clear).length,runs:results.length,waves:Array.from({length:8},(_,i)=>{const w=results.map(r=>r.waves[i]).filter(Boolean),total=w.reduce((a,b)=>a+b.total,0),rescued=w.reduce((a,b)=>a+b.rescued,0);return{wave:i+1,meanItems:+(total/w.length).toFixed(1),recoveryPercent:+(100*rescued/total).toFixed(1)}})}};
  const before=summary(old),after=summary(current);
  assert.equal(after.cleared,seeds.length);
- for(let i=0;i<4;i++)assert.deepEqual(after.waves[i],before.waves[i]);
- assert(after.waves[6].meanItems>before.waves[6].meanItems);
+ for(let i=0;i<7;i++)assert.deepEqual(after.waves[i],before.waves[i]);
+ assert(after.waves[7].meanItems>before.waves[7].meanItems);
  assert(after.waves[7].recoveryPercent<before.waves[7].recoveryPercent);
  console.log(JSON.stringify({before,after},null,2));
 }finally{W.forEach((w,i)=>w.load=current[i])}
@@ -37,3 +37,4 @@ assert.equal(runningPose(start,{x:1,y:1,id:1},1).stride,0);
 assert.equal(runningPose(start,{x:1.1,y:1,id:1},1,true).stride,0);
 assert.equal(runningPose(start,{x:1.1,y:1,id:1,rest:true},1).moving,false);
 console.log('PASS: load balance, active caps, running directions, idle/rest and reduced motion');
+
