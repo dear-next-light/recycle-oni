@@ -1,10 +1,10 @@
 {
   "name": "recycle-oni",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node tests/simulation.mjs && node tests/camera.mjs && node tests/balance.mjs && node tests/motion.mjs"
+    "test": "node tests/simulation.mjs && node tests/camera.mjs && node tests/balance.mjs && node tests/motion.mjs && node tests/team-capacity.mjs"
   }
 }
