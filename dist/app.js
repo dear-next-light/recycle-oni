@@ -30,7 +30,7 @@ for(const o of onis){const f=game.facilities.find(f=>f.id===o.facility);const b=
 if(!onis.length)list.innerHTML=`<p>${bi('担当なし','No assigned Oni')}</p>`;d.append(list,btn('閉じる','Close',closeDetail))}
 function ui(){const state=game.state;if(lastState===state)return;lastState=state;const ov=$('#overlay'),ctl=$('#controls');ov.replaceChildren();ctl.replaceChildren();closeDetail();mode=null;renderTools();
 if(state==='title'){
-ov.innerHTML='<div class="panel opening-panel"><button class="opening-art" id="opening-art" aria-label="ブラウザで今すぐプレイ / Play Now in Your Browser"><img src="assets/opening-v014.webp" alt="リサイクルの鬼 / RECYCLE ONI — まだ使える。小鬼と親方のリサイクル拠点"></button><div class="opening-footer"><div><b>RECYCLE ONI / v0.1.5</b><p>小鬼と施設を配置して8回の回収日へ。<br>Arrange your yard. Survive 8 collection days.</p></div></div></div>';
+ov.innerHTML='<div class="panel opening-panel"><button class="opening-art" id="opening-art" aria-label="ブラウザで今すぐプレイ / Play Now in Your Browser"><img src="assets/opening-v014.webp" alt="リサイクルの鬼 / RECYCLE ONI — まだ使える。小鬼と親方のリサイクル拠点"></button><div class="opening-footer"><div><b>RECYCLE ONI / v0.1.6</b><p>小鬼と施設を配置して8回の回収日へ。<br>Arrange your yard. Survive 8 collection days.</p></div></div></div>';
 $('#opening-art').onclick=()=>{sound.init();game.prepare();refresh()};
 ov.querySelector('.opening-footer').insertAdjacentHTML('beforeend',`<small>BEST ¥${saved.profit.toLocaleString()}<br>回避 / Diversion ${Math.round(saved.avoid*100)}% · FLOW ${saved.flow} · ${saved.rank}</small>`);
 say('まだ使える。');return}
@@ -45,7 +45,7 @@ if(state==='prep'){
 const hint=document.createElement('span');hint.className='hint';hint.innerHTML=bi(`次：${W[game.wave].name} ｜ ${W[game.wave].hint}`,`Next: ${WE[game.wave][0]} · ${WE[game.wave][1]}`);ctl.append(hint);
 const build=document.createElement('div');build.className='build-strip';
 for(const [type,f]of Object.entries(F)){const b=btn(`${f.name} ¥${f.price}`,FE[type],()=>setMode({type}),'',game.money<f.price||game.facilities.length>=C.maxFacilities);b.style.setProperty('--facility-color',palette[type]);b.insertAdjacentHTML('afterbegin',`<span class="facility-icon" aria-hidden="true">${icons[type]}</span>`);build.append(b)}
-build.append(btn(`小鬼 + ¥${C.oniPrice}`,'Hire Oni',()=>{game.recruit();refresh()},'',game.money<C.oniPrice||game.onis.length>=C.maxOni));
+const oniCap=game.oniCapacity(),teamFull=game.onis.length>=oniCap;build.append(btn(`小鬼 + ¥${C.oniPrice}（${game.onis.length}/${oniCap}）`,`Hire Oni · ${game.onis.length}/${oniCap}`,()=>{if(game.recruit())refresh();else say('施設の小鬼枠が満員。','Oni slots are full. Build another facility.')},'',game.money<C.oniPrice||game.onis.length>=C.maxOni||teamFull));
 build.append(btn(`土地 ¥${C.landPrice}`,'Expand land',()=>{game.expand();refresh()},'',game.land===14||game.money<C.landPrice));ctl.append(build);
 ctl.append(btn(`Wave ${game.wave+1} 開始 →`,'Start Wave',()=>{sound.init();game.startWave();refresh()},'primary start-wave'));say('')}
 if(state==='wave'){
@@ -55,13 +55,13 @@ function detail(){const d=$('#detail');d.replaceChildren();if(!selected)return;
 if(selected.kind==='facility'){
 const f=game.facilities.find(f=>f.id===selected.id),assigned=game.onis.filter(o=>o.facility===f.id);
 d.innerHTML=`<span class="selection-icon" aria-hidden="true">${icons[f.type]}</span><h3>${bi(`${F[f.type].name} #${f.id} · Lv.${f.level}`,FE[f.type])}</h3><p>${bi(`入力 ${f.input.length}/${game.capacity(f)} ／ 処理中 ${f.jobs.length} ／ 待ち ${f.output.length}`,'Input / Processing / Output queue')}</p><p>${bi(game.synergy(f)>1?'隣接連携：処理 +10%':'近い施設ほど運搬が速い',game.synergy(f)>1?'Nearby synergy: processing +10%':'Shorter routes mean faster deliveries.')}</p>`;
-d.append(btn(`担当小鬼 ${assigned.length}体`,'Select assigned Oni',()=>roster(assigned,`${F[f.type].name}の小鬼`,`${FE[f.type]} team`),'team-button'));
+d.append(btn(`担当小鬼 ${assigned.length}/${C.oniPerFacility}体`,`Assigned Oni ${assigned.length}/${C.oniPerFacility}`,()=>roster(assigned,`${F[f.type].name}の小鬼`,`${FE[f.type]} team`),'team-button'));
 if(game.state==='prep'){d.append(btn('施設を移動','Move facility',()=>setMode({move:f.id})));d.append(btn(`Lv.UP ¥${C.levelPrice*f.level}`,'Upgrade facility',()=>{game.level(f.id);refresh()},'',game.money<C.levelPrice*f.level||f.level>=4))}
 }else{
 const o=game.onis.find(o=>o.id===selected.id),f=game.facilities.find(f=>f.id===o.facility);
 d.innerHTML=`<img class="detail-portrait" src="assets/oni-${o.type}-v014.webp" alt=""><h3>${bi(`小鬼 #${o.id}`,`Oni #${o.id}`)}</h3><p>${bi(`得意：${F[o.type].name}（作業 +25%）`,`Specialty: ${FE[o.type]} · Work +25%`)}</p><p>${bi(`${traits[o.trait].name}：${traits[o.trait].desc}`,`${TE[o.trait][0]}: ${TE[o.trait][1]}`)}</p><p>${bi(`体力 ${Math.round(o.stamina)}/${o.max}`,`Stamina ${Math.round(o.stamina)}/${o.max}`)}</p><p>${bi(`担当：${F[f.type].name} #${f.id}`,`Assigned: ${FE[f.type]} #${f.id}`)}</p>`;
 if(game.state==='prep'){const label=document.createElement('label');label.innerHTML=bi('担当変更','Reassign');const select=document.createElement('select');select.setAttribute('aria-label','小鬼の担当施設 / Assigned facility');
-for(const f of game.facilities){const option=document.createElement('option');option.value=f.id;option.textContent=`${F[f.type].name} / ${FE[f.type]} #${f.id}${f.type===o.type?' ★':''}`;option.selected=f.id===o.facility;select.append(option)}select.onchange=()=>{game.assign(o.id,+select.value);detail()};label.append(select);d.append(label)}else{const p=document.createElement('p');p.innerHTML=bi('担当変更はWave終了後','Reassign after this Wave.');d.append(p)}
+for(const f of game.facilities){const option=document.createElement('option'),count=game.assignedCount(f.id,o.id),full=count>=C.oniPerFacility&&f.id!==o.facility;option.value=f.id;option.textContent=`${F[f.type].name} / ${FE[f.type]} #${f.id}（${count+(f.id===o.facility?1:0)}/${C.oniPerFacility}）${f.type===o.type?' ★':''}${full?' 満員 / Full':''}`;option.selected=f.id===o.facility;option.disabled=full;select.append(option)}select.onchange=()=>{game.assign(o.id,+select.value);detail()};label.append(select);d.append(label)}else{const p=document.createElement('p');p.innerHTML=bi('担当変更はWave終了後','Reassign after this Wave.');d.append(p)}
 d.append(btn('他の小鬼を選ぶ','Back to roster',()=>roster(game.onis)))}
 d.append(btn('閉じる','Close',closeDetail))}
 function tap(e){if(!['prep','wave'].includes(game.state))return;const p=renderer.point(e);
