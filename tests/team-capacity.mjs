@@ -39,9 +39,16 @@ for(const facility of game.facilities){
 }
 
 // Expand a paid-for yard and fill every facility, testing beyond the old cap12.
+for(const [type,x]of [['compost',15],['break',19]])assert(game.build(type,x,6));
+assert.equal(game.facilityCapacity(),5);
+assert(game.canPlace('wash',1,6));
+const beforeBlockedBuild=game.money;
+assert.equal(game.build('wash',1,6),false);
+assert.equal(game.money,beforeBlockedBuild);
 assert(game.expand());
 assert.equal(game.land,14);
-for(const [type,x,y]of [['compost',15,6],['break',19,6],['wash',3,9],['press',7,9],['repair',11,9],['compost',15,9],['break',19,9]]){
+assert.equal(game.facilityCapacity(),10);
+for(const [type,x,y]of [['wash',3,9],['press',7,9],['repair',11,9],['compost',15,9],['break',19,9]]){
  assert(game.build(type,x,y));
  while(game.recruit()){}
 }
