@@ -3,11 +3,15 @@ import {Game} from './engine.js';
 import {Renderer} from './render.js';
 import {Sound} from './audio.js';
 import {bindGestures} from './camera.js';
+import {Tutorial} from './tutorial.js';
+import {rankRules} from './results.js';
 import {C,facilityTypes as F,traits,upgrades,waveDefinitions as W,weatherEffects} from './config.js';
 import {bi,facilityEnglish as FE,traitEnglish as TE,upgradeEnglish as UE,waveEnglish as WE,weatherEnglish,speechEnglish} from './labels.js';
 const $=s=>document.querySelector(s),game=new Game(),renderer=new Renderer($('#game'));
 const KEY='recycle-oni-v01';let saved={profit:0,avoid:0,flow:0,rank:'C',muted:true};
 try{Object.assign(saved,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch{}
+if(saved.rankRules!==2)saved.rank='C';saved.rankRules=2;
+const tutorial=new Tutorial();
 const sound=new Sound(saved.muted);let lastState='',selected=null,mode=null,last=0,hudTimer=0,savedResult=false;
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(saved))}catch{}}
 function btn(ja,en,fn,cls='',disabled=false){const b=document.createElement('button');b.innerHTML=bi(ja,en);b.className=cls;b.disabled=disabled;b.onclick=fn;return b}
@@ -21,6 +25,7 @@ const z=document.createElement('output');z.id='zoom-value';z.setAttribute('aria-
 t.append(btn('＋','Zoom in',()=>{renderer.camera.zoomAt(1.25);updateZoom()},'zoom-button'));
 t.append(btn('全体','Fit',()=>{renderer.camera.fit();updateZoom()}));
 t.append(btn('小鬼一覧','Oni roster',()=>roster(game.onis)));
+t.append(tutorial.helpButton);
 if(mode)t.append(btn('配置を取消','Cancel placement',()=>{mode=null;renderTools();say('まだ使える。')}));updateZoom()}
 function updateZoom(){if($('#zoom-value'))$('#zoom-value').textContent=`${Math.round(renderer.camera.zoom*100)}%`}
 function roster(onis,title='小鬼を選択',subtitle='Choose an Oni'){
@@ -30,7 +35,7 @@ for(const o of onis){const f=game.facilities.find(f=>f.id===o.facility);const b=
 if(!onis.length)list.innerHTML=`<p>${bi('担当なし','No assigned Oni')}</p>`;d.append(list,btn('閉じる','Close',closeDetail))}
 function ui(){const state=game.state;if(lastState===state)return;lastState=state;const ov=$('#overlay'),ctl=$('#controls');ov.replaceChildren();ctl.replaceChildren();closeDetail();mode=null;renderTools();
 if(state==='title'){
-ov.innerHTML='<div class="panel opening-panel"><button class="opening-art" id="opening-art" aria-label="ブラウザで今すぐプレイ / Play Now in Your Browser"><img src="assets/opening-v014.webp" alt="リサイクルの鬼 / RECYCLE ONI — まだ使える。小鬼と親方のリサイクル拠点"></button><div class="opening-footer"><div><b>RECYCLE ONI / v0.1.6</b><p>小鬼と施設を配置して8回の回収日へ。<br>Arrange your yard. Survive 8 collection days.</p></div></div></div>';
+ov.innerHTML='<div class="panel opening-panel"><button class="opening-art" id="opening-art" aria-label="ブラウザで今すぐプレイ / Play Now in Your Browser"><img src="assets/opening-v014.webp" alt="リサイクルの鬼 / RECYCLE ONI — まだ使える。小鬼と親方のリサイクル拠点"></button><div class="opening-footer"><div><b>RECYCLE ONI / v0.1.7</b><p>小鬼と施設を配置して8回の回収日へ。<br>Arrange your yard. Survive 8 collection days.</p></div><a class="portal-button" href="https://dear-next-light.pages.dev/" target="_blank" rel="noopener noreferrer">Dear Next Light ↗<span class="en">作品ポータル / Games &amp; more</span></a></div></div>';
 $('#opening-art').onclick=()=>{sound.init();game.prepare();refresh()};
 ov.querySelector('.opening-footer').insertAdjacentHTML('beforeend',`<small>BEST ¥${saved.profit.toLocaleString()}<br>回避 / Diversion ${Math.round(saved.avoid*100)}% · FLOW ${saved.flow} · ${saved.rank}</small>`);
 say('まだ使える。');return}
@@ -39,17 +44,19 @@ ov.innerHTML=`<div class="panel"><div class="eyebrow">WAVE ${game.wave} COMPLETE
 for(const u of game.choices){const b=btn('','',()=>{game.choose(u.id);refresh()});b.innerHTML=`<strong>${bi(u.name,UE[u.id][0])}</strong><span>${bi(u.desc,UE[u.id][1])}</span>`;$('.cards').append(b)}return}
 if(state==='result'){
 if(!savedResult){savedResult=true;saved.profit=Math.max(saved.profit,game.profit);saved.avoid=Math.max(saved.avoid,game.rescued/Math.max(1,game.total));saved.flow=Math.max(saved.flow,game.maxFlow);saved.rank=['S','A','B','C'][Math.min(['S','A','B','C'].indexOf(saved.rank),['S','A','B','C'].indexOf(game.rank))];persist()}
-ov.innerHTML=`<div class="panel"><span class="rank">${game.rank}</span><div class="eyebrow">${game.clear?'ALL 8 WAVES CLEAR':'RUN FINISHED'}</div><h2>${bi(game.clear?'……よし。':'小鬼たちは、ひと休み。',game.clear?'…Good.':'The Oni need a rest.')}</h2><div class="stats"><div>${bi('総利益','TOTAL PROFIT')}<b>¥${game.profit.toLocaleString()}</b></div><div>${bi('焼却回避率','Waste diverted')}<b>${Math.round(game.rescued/Math.max(1,game.total)*100)}%</b></div><div>${bi('最終 地球の熱','Final planet heat')}<b>${game.heat.toFixed(1)} / 100</b></div><div>${bi('最大 ONI FLOW','Best combo')}<b>×${game.maxFlow}</b></div><div>${bi('救出したゴミ','Items rescued')}<b>${game.rescued}</b></div></div><div id="replay" class="result-actions"></div><p id="share-status" role="status" aria-live="polite"></p><div id="share-fallback"></div><div id="creator-link"></div></div>`;
+const praise=game.clear?({S:['資源を、未来へ。','Resources saved for tomorrow.'],A:['……よし。次は、もっと。','Good. Aim even higher.'],B:['まだ、救える。','More can be saved.'],C:['回収計画を、もう一度。','Rethink the collection plan.']}[game.rank]):['小鬼たちは、ひと休み。','The Oni need a rest.'];
+ov.innerHTML=`<div class="panel result-panel"><span class="rank">${game.rank}</span><div class="eyebrow">${game.clear?'ALL 8 WAVES CLEAR':'RUN FINISHED'}</div><h2>${bi(...praise)}</h2><div class="stats"><div>${bi('総利益','TOTAL PROFIT')}<b>¥${game.profit.toLocaleString()}</b></div><div>${bi('焼却回避率','Waste diverted')}<b>${Math.floor(game.judgement.avoid*100)}%</b></div><div>${bi('処理完了率','Fully recycled')}<b>${Math.floor(game.judgement.completion*100)}%</b></div><div>${bi('最終 地球の熱','Final planet heat')}<b>${game.heat.toFixed(1)} / 100</b></div><div>${bi('最大 ONI FLOW','Best combo')}<b>×${game.maxFlow}</b></div><div>${bi('救出したゴミ','Items rescued')}<b>${game.rescued}</b></div></div>${resultCriteria()}<div id="replay" class="result-actions"></div><p id="share-status" role="status" aria-live="polite"></p><div id="share-fallback"></div><div id="creator-link"></div></div>`;
 $('#replay').append(btn('もう一度遊ぶ','Play again',()=>{game.reset();savedResult=false;renderer.camera.fit();refresh()},'primary'));setupResultSharing();return}
 if(state==='prep'){
 const hint=document.createElement('span');hint.className='hint';hint.innerHTML=bi(`次：${W[game.wave].name} ｜ ${W[game.wave].hint}`,`Next: ${WE[game.wave][0]} · ${WE[game.wave][1]}`);ctl.append(hint);
 const build=document.createElement('div');build.className='build-strip';
-for(const [type,f]of Object.entries(F)){const b=btn(`${f.name} ¥${f.price}`,FE[type],()=>setMode({type}),'',game.money<f.price||game.facilities.length>=C.maxFacilities);b.style.setProperty('--facility-color',palette[type]);b.insertAdjacentHTML('afterbegin',`<span class="facility-icon" aria-hidden="true">${icons[type]}</span>`);build.append(b)}
+for(const [type,f]of Object.entries(F)){const b=btn(`${f.name} ¥${f.price}`,FE[type],()=>setMode({type}),'',game.money<f.price||game.facilities.length>=C.maxFacilities);b.dataset.guide='build-'+type;b.style.setProperty('--facility-color',palette[type]);b.insertAdjacentHTML('afterbegin',`<span class="facility-icon" aria-hidden="true">${icons[type]}</span>`);build.append(b)}
 const oniCap=game.oniCapacity(),teamFull=game.onis.length>=oniCap;build.append(btn(`小鬼 + ¥${C.oniPrice}（${game.onis.length}/${oniCap}）`,`Hire Oni · ${game.onis.length}/${oniCap}`,()=>{if(game.recruit())refresh();else say('施設の小鬼枠が満員。','Oni slots are full. Build another facility.')},'',game.money<C.oniPrice||game.onis.length>=C.maxOni||teamFull));
+build.lastElementChild.dataset.guide='hire';
 build.append(btn(`土地 ¥${C.landPrice}`,'Expand land',()=>{game.expand();refresh()},'',game.land===14||game.money<C.landPrice));ctl.append(build);
-ctl.append(btn(`Wave ${game.wave+1} 開始 →`,'Start Wave',()=>{sound.init();game.startWave();refresh()},'primary start-wave'));say('')}
+ctl.append(btn(`Wave ${game.wave+1} 開始 →`,'Start Wave',()=>{sound.init();game.startWave();refresh()},'primary start-wave'));ctl.lastElementChild.dataset.guide='start';say('')}
 if(state==='wave'){
-ctl.append(btn('👹 まだ使える！','Rally! · 6 seconds',()=>{if(game.command())refresh()},'primary rally',game.shoutUsed));const h=document.createElement('span');h.className='hint';h.innerHTML=bi('号令は1Waveに1回。配置変更はWave間。','Rally once per Wave. Reassign between Waves.');ctl.append(h);say('まだ使える。')}
+ctl.append(btn('👹 まだ使える！','Rally! · 6 seconds',()=>{if(game.command())refresh()},'primary rally',game.shoutUsed));ctl.lastElementChild.dataset.guide='rally';const h=document.createElement('span');h.className='hint';h.innerHTML=bi('号令は1Waveに1回。配置変更はWave間。','Rally once per Wave. Reassign between Waves.');ctl.append(h);say('まだ使える。')}
 if(Object.keys(game.buffs).length){const chips=document.createElement('div');chips.className='chips';for(const [id,n]of Object.entries(game.buffs)){const s=document.createElement('span');s.innerHTML=bi(upgrades.find(u=>u.id===id).name+(n>1?` ×${n}`:''),UE[id][0]);chips.append(s)}ctl.append(chips)}}
 function detail(){const d=$('#detail');d.replaceChildren();if(!selected)return;
 if(selected.kind==='facility'){
@@ -81,7 +88,7 @@ const hud={wave:$('#hud-wave'),money:$('#hud-money'),heat:$('#hud-heat'),flow:$(
 function changed(el,value){if(el.textContent!==value)el.textContent=value}
 function updateHud(){changed(hud.wave,Math.max(1,game.wave)+'/8');changed(hud.money,'¥'+game.money.toLocaleString());changed(hud.heat,String(Math.floor(game.heat)));changed(hud.flow,'×'+Math.floor(game.flow));
 const color=game.heat>=75?'#f07867':game.heat>=50?'#f7ac61':game.heat>=25?'#ead27a':'#84d5b2';hud.meter.style.setProperty('--heat',game.heat+'%');hud.meter.style.setProperty('--heat-color',color);hud.heat.style.color=color;hud.meter.setAttribute('aria-valuenow',String(Math.floor(game.heat)));hud.flow.parentElement.classList.toggle('active',game.flow>=2);
-const status=game.state==='wave'?bi(weatherEffects[game.weather].name+' · '+Math.max(0,Math.ceil(C.duration-game.time))+'秒',weatherEnglish[game.weather]+' · seconds'):bi('準備で最適化','Plan your routes');if(hud.status.innerHTML!==status)hud.status.innerHTML=status;updateZoom()}
+const status=game.state==='wave'?bi(weatherEffects[game.weather].name+' · '+Math.max(0,Math.ceil(C.duration-game.time))+'秒',weatherEnglish[game.weather]+' · seconds'):bi('準備で最適化','Plan your routes');if(hud.status.innerHTML!==status)hud.status.innerHTML=status;updateZoom();tutorial.update(game,renderer,mode)}
 let lastDraw=0;
 function frame(now){const dt=Math.min(.05,(now-last)/1000||0);last=now;if(!document.hidden){game.tick(dt);sound.tick(dt,game.state==='wave');while(game.events.length){const e=game.events.shift();sound.effect(e.kind);renderer.onEvent(e);if(['shout','flow','reuse','burn'].includes(e.kind))say(e.kind==='burn'?'……。':e.text)}ui();
 // Active gameplay targets 60fps. Idle screens draw at 30fps; static layer is cached.
@@ -91,7 +98,7 @@ ui();updateHud();requestAnimationFrame(frame);
 
 function setupResultSharing(){
  const creator=document.createElement('a');creator.href='https://dear-next-light.pages.dev/';creator.target='_blank';creator.rel='noopener noreferrer';creator.className='creator-link';creator.innerHTML=bi('DearNextLightへ →','Visit DearNextLight');$('#creator-link').append(creator);
- const text=`リサイクルの鬼 / RECYCLE ONI\n${game.clear?'8Waveクリア！ / All 8 waves clear!':'Wave '+game.wave+' / Run finished'} · Rank ${game.rank}\n利益 / Profit ¥${game.profit.toLocaleString()} · 焼却回避 / Waste diverted ${Math.round(game.rescued/Math.max(1,game.total)*100)}% · ONI FLOW ×${game.maxFlow}`;
+ const text=`リサイクルの鬼 / RECYCLE ONI\n${game.clear?'8Waveクリア！ / All 8 waves clear!':'Wave '+game.wave+' / Run finished'} · Rank ${game.rank}\n利益 / Profit ¥${game.profit.toLocaleString()} · 焼却回避 / Waste diverted ${Math.floor(game.judgement.avoid*100)}% · 処理完了 / Fully recycled ${Math.floor(game.judgement.completion*100)}% · ONI FLOW ×${game.maxFlow}`;
  const url='https://recycle-oni.pages.dev/';
  const share=btn('結果をシェア','Share results',async()=>{
   const status=$('#share-status');share.disabled=true;
@@ -102,4 +109,10 @@ function setupResultSharing(){
    }
   }finally{share.disabled=false}
  });$('#replay').append(share);
+}
+
+function resultCriteria(){
+ const {target,met}=game.judgement;
+ const items=[['avoid','♻',`回避 ≥${target.avoid*100}%`,`Divert ≥${target.avoid*100}%`],['processed','✓',`完了 ≥${target.processed*100}%`,`Recycle ≥${target.processed*100}%`],['heat','♨',`熱 ≤${target.heat}`,`Heat ≤${target.heat}`],['profit','¥',`利益 ≥¥${target.profit.toLocaleString()}`,`Profit ≥¥${target.profit.toLocaleString()}`]];
+ return`<section class="rank-target"><b>${bi(game.clear?`${target.rank}判定への目標`:'まずは8Wave完走',game.clear?`Targets for rank ${target.rank}`:'First, survive all 8 Waves')}</b><div class="rank-checks">${items.map(([key,icon,ja,en])=>`<span class="${met[key]?'met':'unmet'}">${met[key]?'✓':'○'} ${icon} ${bi(ja,en)}</span>`).join('')}</div></section><details class="rank-rules"><summary>${bi('判定基準：4条件すべてを達成','Rank rules: meet all four targets')}</summary><table><thead><tr><th>Rank</th><th>♻<br>${bi('回避','Divert')}</th><th>✓<br>${bi('完了','Recycle')}</th><th>♨<br>${bi('熱','Heat')}</th><th>¥<br>${bi('利益','Profit')}</th></tr></thead><tbody>${rankRules.map(r=>`<tr><th>${r.rank}</th><td>≥${r.avoid*100}%</td><td>≥${r.processed*100}%</td><td>≤${r.heat}</td><td>≥${r.profit.toLocaleString()}</td></tr>`).join('')}</tbody></table><p>${bi('8Wave完走が必須。未処理の救出品は処理完了に含みません。','All 8 Waves required. Unfinished rescued items do not count as recycled.')}</p></details>`;
 }

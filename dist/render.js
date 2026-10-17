@@ -18,7 +18,7 @@ export class Renderer {
  if(this.sceneKey===key)return;this.sceneKey=key;this.screenKey='';
  if(this.land!==g.land){this.land=g.land;this.terrain=background(g.land)}
  const c=this.scene.getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,1536,896);const terrain=this.art.get('terrain');c.drawImage(terrain||this.terrain,0,0,1536,896);if(terrain&&g.land===14){c.drawImage(terrain,64,320,1408,250,64,690,1408,206)}c.scale(64,64);
- if(terrain&&g.land<14){rounded(c,9,11.6,6,.76,.05,'#294441d9');c.textAlign='center';c.font='600 .2px system-ui';c.fillStyle='#f6e5b4';c.fillText('拡張予定地 / Expandable land',12,12.06)}
+ if(g.land<14){c.fillStyle='#18362b55';c.fillRect(0,g.land,24,14-g.land);c.strokeStyle='#dfc778aa';c.lineWidth=.035;c.setLineDash([.25,.18]);c.beginPath();c.moveTo(.5,g.land);c.lineTo(23.5,g.land);c.stroke();c.setLineDash([]);rounded(c,8,g.land+.5,8,.76,.05,'#294441ed');c.textAlign='center';c.font='600 .23px system-ui';c.fillStyle='#f6e5b4';c.fillText('🔒 土地拡張 / Expand land',12,g.land+.97)}
  for(const f of [...g.facilities].sort((a,b)=>a.y-b.y)){
  c.fillStyle='#574e3b30';c.beginPath();c.ellipse(f.x+1.1,f.y+1.87,1.06,.22,0,0,Math.PI*2);c.fill();
  const im=this.art.get(`facility-${f.type}`);
