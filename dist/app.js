@@ -50,10 +50,10 @@ $('#replay').append(btn('もう一度遊ぶ','Play again',()=>{game.reset();save
 if(state==='prep'){
 const hint=document.createElement('span');hint.className='hint';hint.innerHTML=bi(`次：${W[game.wave].name} ｜ ${W[game.wave].hint}`,`Next: ${WE[game.wave][0]} · ${WE[game.wave][1]}`);ctl.append(hint);
 const build=document.createElement('div');build.className='build-strip';
-for(const [type,f]of Object.entries(F)){const b=btn(`${f.name} ¥${f.price}`,FE[type],()=>setMode({type}),'',game.money<f.price||game.facilities.length>=C.maxFacilities);b.dataset.guide='build-'+type;b.style.setProperty('--facility-color',palette[type]);b.insertAdjacentHTML('afterbegin',`<span class="facility-icon" aria-hidden="true">${icons[type]}</span>`);build.append(b)}
+for(const [type,f]of Object.entries(F)){const b=btn(`${f.name} ¥${f.price}`,FE[type],()=>setMode({type}),'',game.money<f.price||game.facilities.length>=game.facilityCapacity());b.dataset.guide='build-'+type;b.style.setProperty('--facility-color',palette[type]);b.insertAdjacentHTML('afterbegin',`<span class="facility-icon" aria-hidden="true">${icons[type]}</span>`);build.append(b)}
 const oniCap=game.oniCapacity(),teamFull=game.onis.length>=oniCap;build.append(btn(`小鬼 + ¥${C.oniPrice}（${game.onis.length}/${oniCap}）`,`Hire Oni · ${game.onis.length}/${oniCap}`,()=>{if(game.recruit())refresh();else say('施設の小鬼枠が満員。','Oni slots are full. Build another facility.')},'',game.money<C.oniPrice||game.onis.length>=C.maxOni||teamFull));
 build.lastElementChild.dataset.guide='hire';
-build.append(btn(`土地 ¥${C.landPrice}`,'Expand land',()=>{game.expand();refresh()},'',game.land===14||game.money<C.landPrice));ctl.append(build);
+build.append(btn(`土地 ¥${C.landPrice}`,game.land===14?`Plots ${game.facilities.length}/${game.facilityCapacity()}`:`Expand · 5→${C.maxFacilities} plots`,()=>{game.expand();refresh()},'',game.land===14||game.money<C.landPrice));ctl.append(build);
 ctl.append(btn(`Wave ${game.wave+1} 開始 →`,'Start Wave',()=>{sound.init();game.startWave();refresh()},'primary start-wave'));ctl.lastElementChild.dataset.guide='start';say('')}
 if(state==='wave'){
 ctl.append(btn('👹 まだ使える！','Rally! · 6 seconds',()=>{if(game.command())refresh()},'primary rally',game.shoutUsed));ctl.lastElementChild.dataset.guide='rally';const h=document.createElement('span');h.className='hint';h.innerHTML=bi('号令は1Waveに1回。配置変更はWave間。','Rally once per Wave. Reassign between Waves.');ctl.append(h);say('まだ使える。')}
