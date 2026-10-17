@@ -12,3 +12,19 @@ qb('QA rally',()=>{game.reset();game.prepare();game.startWave();game.command();r
 qb('QA sprites',()=>{game.reset();game.prepare();game.money=5000;for(const [type,x]of [['break',11],['repair',15],['compost',19]]){const f=game.addFacility(type,x,6);game.addOni(type,f.id)}game.startWave();for(let i=0;i<200;i++)game.tick(.025);refresh();renderer.camera.zoomAt(1.8);updateZoom();qaOut.textContent='Directional profiles: side facing right/left, back when moving up, front when moving down.'});
 qb('QA vertical run',()=>{game.reset();game.prepare();game.startWave();game.trucks=[];game.spawnIn=999;game.onis.forEach((o,i)=>{o.x=8+i*2;o.y=i?9:5;o.path=Array.from({length:4},(_,j)=>({x:o.x,y:i?8-j:6+j}));o.target=null});refresh();renderer.camera.zoomAt(2);renderer.camera.focus(9,7);updateZoom();qaOut.textContent='Up/down running fixture; compare alternating legs while they traverse the yard.'});
 qb('QA copy fallback',()=>{Object.defineProperty(navigator,'share',{value:undefined,configurable:true});qaOut.textContent='Native sharing disabled in this QA tab only; Share results should copy.'});
+qb('QA guide +5s',()=>{if(game.state==='wave')for(let i=0;i<100&&game.state==='wave';i++)game.tick(.05);refresh();tutorial.update(game,renderer,mode);qaOut.textContent='Guide step: '+tutorial.stage});
+qb('QA finish Wave',()=>{for(let i=0;i<12000&&game.state==='wave';i++)game.tick(.05);refresh();tutorial.update(game,renderer,mode);qaOut.textContent='Wave '+game.wave+' / '+game.state});
+qb('QA expanded 8',()=>{try{
+ let seed=42;game.random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};game.reset();savedResult=false;game.prepare();
+ const sites=[['compost',11,6],['repair',15,6],['break',19,6],['press',3,9],['wash',7,9],['repair',11,9],['compost',15,9],['break',19,9]],run=[];
+ for(let n=1;n<=8;n++){
+  const target=n<3?2:n===3?4:n===4?5:Math.min(10,5+(n-4)*2);
+  while(game.facilities.length<target&&sites.length){const [type,x,y]=sites.shift();if(y>=9&&game.land<14)game.expand();if(!game.build(type,x,y))throw Error('build '+type)}
+  while(game.recruit()){}
+  for(let level=2;level<=(n<5?2:4);level++)for(const f of game.facilities)if(f.level<level)game.level(f.id);
+  game.startWave();game.command();for(let i=0;i<12000&&game.state==='wave';i++)game.tick(.05);
+  run.push({wave:game.wave,onis:game.onis.length,facilities:game.facilities.length,heat:game.heat});
+  if(game.state==='result')break;game.choose(game.choices.find(u=>u.id==='eco')?.id||game.choices[0].id);
+ }
+ refresh();tutorial.update(game,renderer,mode);qaOut.textContent=JSON.stringify({pass:game.clear&&game.wave===8,rank:game.rank,profit:game.profit,processed:game.processed,total:game.total,run},null,2);
+}catch(e){qaOut.textContent='FAIL '+e.stack}});

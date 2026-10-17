@@ -10,6 +10,8 @@ assert.equal(C.oniPerFacility,2);
 assert.equal(game.facilities.length,2);
 assert.equal(game.onis.length,3);
 assert.equal(game.oniCapacity(),4);
+assert.equal(game.land,9);
+assert.equal(game.canPlace('repair',11,9),false);
 assert(game.recruit());
 assert.equal(game.onis.length,4);
 assert.equal(game.openFacility(),null);
@@ -36,4 +38,18 @@ for(const facility of game.facilities){
  assert(game.assignedCount(facility.id)<=C.oniPerFacility);
 }
 
-console.log('PASS: two Oni per facility, recruitment lock, expansion unlock and full-facility reassignment guard');
+// Expand a paid-for yard and fill every facility, testing beyond the old cap12.
+assert(game.expand());
+assert.equal(game.land,14);
+for(const [type,x,y]of [['compost',15,6],['break',19,6],['wash',3,9],['press',7,9],['repair',11,9],['compost',15,9],['break',19,9]]){
+ assert(game.build(type,x,y));
+ while(game.recruit()){}
+}
+assert.equal(game.facilities.length,C.maxFacilities);
+assert.equal(game.oniCapacity(),20);
+assert.equal(game.onis.length,20);
+assert.equal(game.recruit(),false);
+for(const facility of game.facilities)assert.equal(game.assignedCount(facility.id),2);
+assert.equal(game.build('wash',1,11),false);
+
+console.log('PASS: two Oni per facility, paid land expansion, recruitment/full-facility guards and all 20 staffing slots');
