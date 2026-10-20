@@ -1,4 +1,5 @@
 // Development-only harness injected by visual-server.mjs. Never shipped in dist.
+import {hirePrice as qaHirePrice,facilityPrice as qaFacilityPrice,levelPrice as qaLevelPrice} from './economy.js';
 const qaPanel=document.createElement('aside');qaPanel.id='qa-panel';qaPanel.style='position:fixed;right:8px;top:106px;z-index:50;background:#07151fee;color:white;padding:6px;font:12px monospace;max-width:440px;max-height:45vh;overflow:auto;border:1px solid #789';
 const qaOut=document.createElement('pre');qaOut.id='qa-results';qaOut.style='white-space:pre-wrap';const qaControls=document.createElement('div');qaPanel.append(qaControls,qaOut);document.body.append(qaPanel);
 function qb(name,fn){const b=document.createElement('button');b.textContent=name;b.style='font:12px monospace;padding:4px;min-height:30px';b.onclick=fn;qaControls.append(b)}
@@ -19,12 +20,19 @@ qb('QA expanded 8',()=>{try{
  const sites=[['compost',11,6],['repair',15,6],['break',19,6],['press',3,9],['wash',7,9],['repair',11,9],['compost',15,9],['break',19,9]],run=[];
  for(let n=1;n<=8;n++){
   const target=n<3?2:n===3?4:n===4?5:Math.min(10,5+(n-4)*2);
-  while(game.facilities.length<target&&sites.length){const [type,x,y]=sites.shift();if(y>=9&&game.land<14)game.expand();if(!game.build(type,x,y))throw Error('build '+type)}
+  while(game.facilities.length<target&&sites.length){const [type,x,y]=sites[0];if(y>=9&&game.land<14&&!game.expand())break;if(!game.build(type,x,y))break;sites.shift()}
   while(game.recruit()){}
-  for(let level=2;level<=(n<5?2:4);level++)for(const f of game.facilities)if(f.level<level)game.level(f.id);
+  let savings=0;const nextTarget=n<2?2:n===2?4:n===3?5:Math.min(10,5+(n-3)*2),count=game.facilities.length;
+  if(n<8&&count<nextTarget&&sites.length){for(let i=0;i<nextTarget-count&&i<sites.length;i++)savings+=qaFacilityPrice(sites[i][0],count+i);if(game.land<14&&nextTarget>5)savings+=C.landPrice;for(let i=game.onis.length;i<Math.min(C.maxOni,nextTarget*2);i++)savings+=qaHirePrice(i)}
+  for(let level=2;level<=(n<5?2:4);level++)for(const f of game.facilities)if(f.level<level&&game.money-qaLevelPrice(f.level)>=savings)game.level(f.id);
   game.startWave();game.command();for(let i=0;i<12000&&game.state==='wave';i++)game.tick(.05);
-  run.push({wave:game.wave,onis:game.onis.length,facilities:game.facilities.length,heat:game.heat});
+  run.push({wave:game.wave,onis:game.onis.length,facilities:game.facilities.length,heat:game.heat,money:game.money,levels:game.facilities.map(f=>f.level)});
   if(game.state==='result')break;game.choose(game.choices.find(u=>u.id==='eco')?.id||game.choices[0].id);
  }
  refresh();tutorial.update(game,renderer,mode);qaOut.textContent=JSON.stringify({pass:game.clear&&game.wave===8,rank:game.rank,profit:game.profit,processed:game.processed,total:game.total,run},null,2);
 }catch(e){qaOut.textContent='FAIL '+e.stack}});
+function qaFullYard(money=795,expanded=false){game.reset();game.prepare();game.wave=2;game.buffs={wash:1,speed:1};if(expanded)game.land=14;for(const p of game.freePlots())game.addFacility(p.x%8===3?'wash':'press',p.x,p.y);game.money=money;tutorial.finish();refresh();qaOut.textContent='Fixture: '+game.facilities.length+' occupied plots; ¥'+money+'; repair quote ¥'+game.buildPrice('repair')}
+qb('QA 5 plots ¥795',()=>qaFullYard());
+qb('QA 5 plots ¥259',()=>qaFullYard(259));
+qb('QA 10 plots',()=>qaFullYard(5000,true));
+qb('QA peak load',()=>{qaFullYard(0,true);for(const f of game.facilities){f.level=3;while(game.assignedCount(f.id)<2)game.addOni(f.type,f.id)}game.wave=7;game.startWave();game.nextSpawn=999;for(let i=0;i<3;i++){game.spawn();game.trucks.at(-1).x=2+i*7}refresh();qaOut.textContent='Peak fixture: '+game.onis.length+' Oni, '+game.activeItems()+' waste, '+game.trucks.length+' trucks'});

@@ -4,7 +4,7 @@ import {C} from '../dist/config.js';
 
 const game=new Game(()=>.2);
 game.prepare();
-game.money=5000;
+game.money=50000;
 
 assert.equal(C.oniPerFacility,2);
 assert.equal(game.facilities.length,2);
@@ -41,7 +41,8 @@ for(const facility of game.facilities){
 // Expand a paid-for yard and fill every facility, testing beyond the old cap12.
 for(const [type,x]of [['compost',15],['break',19]])assert(game.build(type,x,6));
 assert.equal(game.facilityCapacity(),5);
-assert(game.canPlace('wash',1,6));
+assert.equal(game.freePlots().length,0);
+assert.equal(game.canPlace('wash',1,6),false);
 const beforeBlockedBuild=game.money;
 assert.equal(game.build('wash',1,6),false);
 assert.equal(game.money,beforeBlockedBuild);
