@@ -18,7 +18,16 @@ export class Renderer {
  if(this.sceneKey===key)return;this.sceneKey=key;this.screenKey='';
  if(this.land!==g.land){this.land=g.land;this.terrain=background(g.land)}
  const c=this.scene.getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,1536,896);const terrain=this.art.get('terrain');c.drawImage(terrain||this.terrain,0,0,1536,896);if(terrain&&g.land===14){c.drawImage(terrain,64,320,1408,250,64,690,1408,206)}c.scale(64,64);
- if(g.land<14){c.fillStyle='#18362b55';c.fillRect(0,g.land,24,14-g.land);c.strokeStyle='#dfc778aa';c.lineWidth=.035;c.setLineDash([.25,.18]);c.beginPath();c.moveTo(.5,g.land);c.lineTo(23.5,g.land);c.stroke();c.setLineDash([]);rounded(c,7,g.land+.5,10,.76,.05,'#294441ed');c.textAlign='center';c.font='600 .23px system-ui';c.fillStyle='#f6e5b4';c.fillText('🔒 土地拡張 5→10棟 / Expand 5→10 plots',12,g.land+.97)}
+ if(g.land<14){c.fillStyle='#18362b55';c.fillRect(0,g.land,24,14-g.land);rounded(c,8,12.2,8,.7,.05,'#294441ed');c.textAlign='center';c.font='600 .23px system-ui';c.fillStyle='#f6e5b4';c.fillText('🔒 土地拡張で＋5区画 / Unlock 5 plots',12,12.63)}
+ for(const p of g.constructionPlots(true)){
+  const occupied=g.facilities.some(f=>f.x===p.x&&f.y===p.y);c.lineWidth=.025;
+  rounded(c,p.x-.04,p.y-.04,2.08,2.08,.08,p.locked?'#293e3c88':'#ddd1aa60',p.locked?'#809085':'#e9d298');
+  if(occupied)continue;
+  c.save();c.beginPath();c.rect(p.x,p.y,2,2);c.clip();c.strokeStyle=p.locked?'#b2c0a244':'#9c8d6e66';c.lineWidth=.018;
+  if(p.locked){for(let x=p.x-2;x<p.x+2;x+=.28){c.beginPath();c.moveTo(x,p.y);c.lineTo(x+2,p.y+2);c.stroke()}}
+  else{c.beginPath();c.moveTo(p.x+1,p.y);c.lineTo(p.x+1,p.y+2);c.moveTo(p.x,p.y+1);c.lineTo(p.x+2,p.y+1);c.stroke()}
+  c.restore();c.fillStyle=p.locked?'#d6d7bb':'#f9ecc0';c.textAlign='center';c.font='800 .5px system-ui';c.fillText(p.locked?'🔒':'+',p.x+1,p.y+.95);c.font='600 .18px system-ui';c.fillText(p.locked?'拡張 / Expand':'建設 / Build',p.x+1,p.y+1.4);
+ }
  for(const f of [...g.facilities].sort((a,b)=>a.y-b.y)){
  c.fillStyle='#574e3b30';c.beginPath();c.ellipse(f.x+1.1,f.y+1.87,1.06,.22,0,0,Math.PI*2);c.fill();
  const im=this.art.get(`facility-${f.type}`);
@@ -40,7 +49,7 @@ export class Renderer {
  if(k!==this.screenKey){this.screenKey=k;const b=this.staticCtx;b.setTransform(d,0,0,d,0,0);b.fillStyle='#64735b';b.fillRect(0,0,r.width,r.height);b.translate(v.x,v.y);b.scale(v.scale,v.scaleY);b.drawImage(this.scene,0,0,24,14)}
  const ctx=this.ctx;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,w,h);ctx.setTransform(d,0,0,d,0,0);ctx.translate(v.x,v.y);ctx.scale(v.scale,v.scaleY);
  const text=(t,x,y,size=.25,col='#fff2c3')=>{ctx.font=`700 ${size}px system-ui`;ctx.textAlign='center';ctx.lineWidth=.045;ctx.strokeStyle='#263b40';ctx.strokeText(t,x,y);ctx.fillStyle=col;ctx.fillText(t,x,y)};
- if(mode){ctx.strokeStyle='#526b6b55';ctx.lineWidth=.018;for(let x=1;x<=23;x++){ctx.beginPath();ctx.moveTo(x,6);ctx.lineTo(x,g.land);ctx.stroke()}for(let y=6;y<=g.land;y++){ctx.beginPath();ctx.moveTo(1,y);ctx.lineTo(23,y);ctx.stroke()}}
+ if(mode){ctx.lineWidth=.06;for(const p of g.constructionPlots())if(mode.move||g.canPlace(mode.type,p.x,p.y)){rounded(ctx,p.x-.07,p.y-.07,2.14,2.14,.07,'#a6e6b522','#c8f4b8');if(!g.facilities.some(f=>f.x===p.x&&f.y===p.y))text('+',p.x+1,p.y+1.15,.6,'#e4ffc7')}}
  for(const o of g.onis){
  if(!o.path.length)continue;if(selected?.kind==='oni'&&selected.id!==o.id)continue;if(selected?.kind==='facility'&&selected.id!==o.facility)continue;
  const f=g.facilities.find(f=>f.id===o.facility);ctx.save();ctx.strokeStyle=palette[f.type];ctx.globalAlpha=selected ? .85:.42;ctx.lineWidth=g.flow>=3?.065:.045;ctx.setLineDash([.18,.12]);ctx.lineDashOffset=this.reduced?0:-this.clock*(g.flow>=3?.7:.35);ctx.beginPath();ctx.moveTo(o.x+.5,o.y+.5);for(const p of o.path)ctx.lineTo(p.x+.5,p.y+.5);ctx.stroke();ctx.setLineDash([]);const p=o.path.at(-1);ctx.beginPath();ctx.moveTo(p.x+.36,p.y+.34);ctx.lineTo(p.x+.5,p.y+.53);ctx.lineTo(p.x+.64,p.y+.34);ctx.stroke();ctx.restore();

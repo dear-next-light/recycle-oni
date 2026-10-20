@@ -25,7 +25,9 @@ const labels={
  upgrade:['3つから1つ','Choose one free upgrade'],
  capacity:['空き枠に小鬼を','Fill an open Oni slot'],
  build:['施設を増やす → 小鬼も増やせる','More facilities → more Oni'],
- place:['空き地に配置','Place on an empty space'],
+ expand:['建築区画が満員 → 土地を拡張','Plots full → expand the yard'],
+ optimize:['区画は満員。施設を選んで強化・担当変更','All plots full. Select a facility to upgrade or reassign'],
+ place:['空いている建築区画に配置','Place in an empty construction plot'],
  done:['次の回収へ！','Ready for the next collection!'],
 };
 const flowSteps=['truck','carry','wash','press','money'];
@@ -53,12 +55,15 @@ export class Tutorial{
    graphic=flowSteps.map((s,i)=>`${i?'<i class="guide-arrow">→</i>':''}<span class="guide-node${s===stage?' is-current':''}${flowSteps.indexOf(s)<flowSteps.indexOf(stage)?' is-past':''}">${icons[flowIcon[s]]}</span>`).join('');
   }else if(stage==='rally')graphic=`<span class="guide-node is-current guide-rally-icon">${icons.rally}</span><i class="guide-arrow">→</i><span class="guide-node">${icons.oni}</span><span class="guide-speed" aria-hidden="true">» »</span>`;
   else if(stage==='upgrade')graphic=`<span class="guide-upgrade-icon">${icons.upgrade}</span><i class="guide-arrow">→</i><span class="guide-one">1</span>`;
+  else if(stage==='expand')graphic=`<span class="guide-node">${icons.facility}</span><i class="guide-arrow">→</i><span class="guide-node is-current">${icons.money}</span><i class="guide-arrow">→</i><span class="guide-node">${icons.facility}</span>`;
+  else if(stage==='optimize')graphic=`<span class="guide-node">${icons.facility}</span><i class="guide-arrow">→</i><span class="guide-node is-current">${icons.upgrade}</span><span class="guide-node">${icons.oni}</span>`;
   else if(stage==='done')graphic='<span class="guide-complete">✓</span><i class="guide-arrow">→</i>'+icons.truck;
   else graphic=`<span class="guide-node">${icons.facility}</span><span class="guide-slots"></span><i class="guide-arrow">→</i><span class="guide-node">${icons.oni}</span><span class="guide-capacity"></span>`;
   this.graphic.innerHTML=graphic;
   const n=stage==='start'?1:flowSteps.includes(stage)?2:['rally','upgrade'].includes(stage)?3:4;this.count.textContent=`${n} / 4`;
   this.layer.dataset.step=stage;
  }
+ buildStage(g){return g.freePlots().length?'build':g.constructionPlots(true).some(plot=>plot.locked)?'expand':'optimize'}
  update(g,renderer,mode=null){
   this.game=g;this.renderer=renderer;this.mode=mode;
   if(g.state==='title'){this.hide();return}
@@ -71,11 +76,11 @@ export class Tutorial{
   else if(g.state==='prep'){
    if(g.wave===0&&!this.manual)this.step('start',g);
    else{
-    if(this.lastState!=='prep'||this.prepBaseline===null||this.prepBaseline===undefined){this.prepBaseline=g.facilities.length;this.prepOnis=g.onis.length;this.prepClock=performance.now();this.step(g.onis.length>=g.oniCapacity()?'build':'capacity',g)}
+    if(this.lastState!=='prep'||this.prepBaseline===null||this.prepBaseline===undefined){this.prepBaseline=g.facilities.length;this.prepOnis=g.onis.length;this.prepClock=performance.now();this.step(g.onis.length>=g.oniCapacity()?this.buildStage(g):'capacity',g)}
     if(g.facilities.length>this.prepBaseline){this.step('done',g);if(performance.now()-this.stageClock>3000){this.finish();return}}
     else if(mode?.type)this.step('place',g);
-    else if(this.stage==='place')this.step('build',g);
-    else if(g.onis.length>this.prepOnis||g.onis.length>=g.oniCapacity()||performance.now()-this.prepClock>12000)this.step('build',g);
+    else if(this.stage==='place'||['build','expand','optimize'].includes(this.stage))this.step(this.buildStage(g),g);
+    else if(g.onis.length>this.prepOnis||g.onis.length>=g.oniCapacity()||performance.now()-this.prepClock>12000)this.step(this.buildStage(g),g);
    }
   }else if(g.state==='wave'){
    if(this.lastState!=='wave'){
@@ -110,13 +115,17 @@ export class Tutorial{
   if(this.stage==='rally')return element('[data-guide="rally"],.rally');
   if(this.stage==='upgrade')return element('.cards');
   if(this.stage==='money')return element('#hud-money');
-  if(this.stage==='capacity')return element('[data-guide="hire"]')||element('.build-strip button:nth-last-child(2)');
+  if(this.stage==='capacity')return element('[data-guide="hire"]')||element('.build-strip button:last-child');
+  if(this.stage==='expand')return element('[data-guide="expand"]');
+  if(this.stage==='optimize'){
+   const f=g.facilities.find(f=>f.level<4)||g.facilities[0];return f?world(f.x,f.y,2,2):null;
+  }
   if(this.stage==='build'){
    const needed=!g.facilities.some(f=>f.type==='compost')?'compost':!g.facilities.some(f=>f.type==='repair')?'repair':'wash';
    return element(`[data-guide="build-${needed}"]`)||element(`.build-strip button:nth-child(${Object.keys(F).indexOf(needed)+1})`);
   }
   if(this.stage==='place'){
-   for(let y=6;y<g.land-1;y++)for(let x=2;x<=20;x++)if(g.canPlace(mode.type,x,y))return world(x,y,2,2);
+   const plot=g.freePlots()[0];return plot?world(plot.x,plot.y,2,2):null;
   }
   if(this.stage==='truck'){const t=g.trucks.find(t=>t.x>=0&&t.x<=21)||g.trucks[0];return t?world(t.x,2.3,2.6,1.6):world(0,2.3,2.6,1.6)}
   if(this.stage==='carry'){const o=g.onis.find(o=>o.carry)||g.onis.find(o=>o.path.length)||g.onis[0];return o?world(o.x,o.y-.5,1,1.4):null}

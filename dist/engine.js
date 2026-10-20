@@ -1,5 +1,7 @@
 import {C,trashTypes as T,facilityTypes as F,oniTypes,traits,upgrades,waveDefinitions as W,weatherEffects} from './config.js';
 import {judgeResult} from './results.js';
+import {constructionPlots,plotAt} from './plots.js';
+import {hirePrice,facilityPrice,levelPrice} from './economy.js';
 export function pathfind(a,b,facilities,rows=14){const start={x:Math.round(a.x),y:Math.round(a.y)},goal={x:Math.round(b.x),y:Math.round(b.y)},key=p=>p.y*24+p.x,blocked=new Set();for(const f of facilities)for(let y=f.y;y<f.y+2;y++)for(let x=f.x;x<f.x+2;x++)blocked.add(y*24+x);if(blocked.has(key(goal)))return null;const q=[start],prev=new Map([[key(start),null]]);for(let i=0;i<q.length;i++){let p=q[i];if(key(p)===key(goal)){let out=[];while(prev.get(key(p))!==null){out.push(p);p=prev.get(key(p))}return out.reverse()}for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){let n={x:p.x+dx,y:p.y+dy},k=key(n);if(n.x<0||n.x>=24||n.y<4||n.y>=rows||blocked.has(k)||prev.has(k))continue;prev.set(k,p);q.push(n)}}return null}
 export class Game{
  constructor(random=Math.random){this.random=random;this.reset()}
@@ -11,13 +13,19 @@ export class Game{
  oniCapacity(){return Math.min(C.maxOni,this.facilities.length*C.oniPerFacility)}
  openFacility(){return this.facilities.filter(f=>this.assignedCount(f.id)<C.oniPerFacility).sort((a,b)=>this.assignedCount(a.id)-this.assignedCount(b.id))[0]||null}
  entry(f){return{x:f.x,y:f.y-1}}
- canPlace(type,x,y,ignore=null){if(x<1||x>21||y<6||y+1>=this.land)return false;const fs=this.facilities.filter(f=>f.id!==ignore);if(fs.some(f=>x<f.x+2&&x+2>f.x&&y<f.y+2&&y+2>f.y))return false;const next=[...fs,{id:ignore,type,x,y}];return next.every(f=>pathfind({x:0,y:4},this.entry(f),next,this.land)!==null)}
- facilityCapacity(){return this.land===14?C.maxFacilities:Math.min(5,C.maxFacilities)}
- build(type,x,y){if(this.state!=='prep'||this.facilities.length>=this.facilityCapacity()||this.money<F[type].price||!this.canPlace(type,x,y))return false;this.money-=F[type].price;this.addFacility(type,x,y);return true}
- move(id,x,y){const f=this.facilities.find(f=>f.id===id);if(this.state!=='prep'||!f||!this.canPlace(f.type,x,y,id))return false;f.x=x;f.y=y;for(const o of this.onis){if(o.task&&!o.carry)o.task.item.owner=null;o.task=null;o.path=[];let home=this.facilities.find(f=>f.id===o.facility);Object.assign(o,this.entry(home))}return true}
+ constructionPlots(includeLocked=false){return constructionPlots(this.land,includeLocked)}
+ freePlots(){return this.constructionPlots().filter(p=>!this.facilities.some(f=>f.x===p.x&&f.y===p.y))}
+ placementAt(point,includeLocked=false){return plotAt(point,this.land,includeLocked)}
+ canPlace(type,x,y,ignore=null){if(!F[type]||!this.constructionPlots().some(p=>p.x===x&&p.y===y))return false;const fs=this.facilities.filter(f=>f.id!==ignore);if(fs.some(f=>x<f.x+2&&x+2>f.x&&y<f.y+2&&y+2>f.y))return false;const next=[...fs,{id:ignore,type,x,y}];return next.every(f=>pathfind({x:0,y:4},this.entry(f),next,this.land)!==null)}
+ facilityCapacity(){return this.constructionPlots().length}
+ buildPrice(type){return facilityPrice(type,this.facilities.length)}
+ hirePrice(){return hirePrice(this.onis.length)}
+ levelPrice(id){return levelPrice(this.facilities.find(f=>f.id===id)?.level)}
+ build(type,x,y){const cost=this.buildPrice(type);if(this.state!=='prep'||this.money<cost||!this.canPlace(type,x,y))return false;this.money-=cost;this.addFacility(type,x,y);return true}
+ move(id,x,y){const f=this.facilities.find(f=>f.id===id),target=this.facilities.find(g=>g.id!==id&&g.x===x&&g.y===y);if(this.state!=='prep'||!f||!this.constructionPlots().some(p=>p.x===x&&p.y===y))return false;const next=this.facilities.map(g=>g===f?{...g,x,y}:g===target?{...g,x:f.x,y:f.y}:g);if(!next.every(g=>pathfind({x:0,y:4},this.entry(g),next,this.land)!==null))return false;if(target){target.x=f.x;target.y=f.y}f.x=x;f.y=y;for(const o of this.onis){if(o.task&&!o.carry)o.task.item.owner=null;o.task=null;o.path=[];let home=this.facilities.find(f=>f.id===o.facility);Object.assign(o,this.entry(home))}return true}
  assign(id,fid){if(this.state!=='prep')return false;let o=this.onis.find(o=>o.id===id),f=this.facilities.find(f=>f.id===fid);if(!o||!f||this.assignedCount(fid,o.id)>=C.oniPerFacility)return false;if(o.task&&!o.carry)o.task.item.owner=null;if(o.carry){const old=this.facilities.find(f=>f.id===o.facility);old.input.push({item:o.carry,oni:o.id});o.carry=null}o.facility=fid;o.task=null;o.path=[];Object.assign(o,this.entry(f));return true}
- recruit(){const f=this.openFacility();if(this.state!=='prep'||this.money<C.oniPrice||this.onis.length>=C.maxOni||!f)return false;this.money-=C.oniPrice;this.addOni(undefined,f.id);return true}
- level(id){let f=this.facilities.find(f=>f.id===id),cost=C.levelPrice*f.level;if(this.state!=='prep'||this.money<cost||f.level>=4)return false;this.money-=cost;f.level++;return true}
+ recruit(){const f=this.openFacility(),cost=this.hirePrice();if(this.state!=='prep'||this.money<cost||this.onis.length>=C.maxOni||!f)return false;this.money-=cost;this.addOni(undefined,f.id);return true}
+ level(id){let f=this.facilities.find(f=>f.id===id),cost=this.levelPrice(id);if(this.state!=='prep'||!f||this.money<cost||f.level>=4)return false;this.money-=cost;f.level++;return true}
  expand(){if(this.state!=='prep'||this.land===14||this.money<C.landPrice)return false;this.money-=C.landPrice;this.land=14;return true}
  prepare(){this.state='prep';this.taken=true}
  choose(id){if(this.state!=='upgrade'||this.taken||!this.choices.some(u=>u.id===id))return false;this.buffs[id]=(this.buffs[id]||0)+1;this.taken=true;this.state='prep';return true}

@@ -9,16 +9,33 @@ import {C,facilityTypes as F,traits,upgrades,waveDefinitions as W,weatherEffects
 import {bi,facilityEnglish as FE,traitEnglish as TE,upgradeEnglish as UE,waveEnglish as WE,weatherEnglish,speechEnglish} from './labels.js';
 const $=s=>document.querySelector(s),game=new Game(),renderer=new Renderer($('#game'));
 const KEY='recycle-oni-v01';let saved={profit:0,avoid:0,flow:0,rank:'C',muted:true};
+const PORTAL_LABEL='他にもおもしろいゲームあるよ！ポータルサイトDearNextLightへ';
 try{Object.assign(saved,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch{}
 if(saved.rankRules!==2)saved.rank='C';saved.rankRules=2;
 const tutorial=new Tutorial();
+const yardStatus=document.createElement('section');yardStatus.id='yard-status';yardStatus.hidden=true;yardStatus.setAttribute('aria-label','建設区画と土地拡張 / Building plots and land expansion');$('#field').before(yardStatus);
 const sound=new Sound(saved.muted);let lastState='',selected=null,mode=null,last=0,hudTimer=0,savedResult=false;
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(saved))}catch{}}
 function btn(ja,en,fn,cls='',disabled=false){const b=document.createElement('button');b.innerHTML=bi(ja,en);b.className=cls;b.disabled=disabled;b.onclick=fn;return b}
 function say(ja,en=speechEnglish[ja]||''){$('#caption').hidden=!ja;$('#caption').innerHTML=bi(`鬼 「${ja}」`,en)}
 function refresh(){lastState='';hudTimer=1;ui()}
 function closeDetail(){selected=null;$('#detail').replaceChildren()}
-function setMode(next){mode=next;closeDetail();say('空きマスをタップ。ドラッグで移動。','Tap an empty cell. Drag to pan.');renderTools()}
+function setMode(next){mode=next;closeDetail();say(next.move?'区画をタップ。使用中なら施設を入れ替え。':`「＋」の区画をタップ：${F[next.type].name} ¥${game.buildPrice(next.type)}`,next.move?'Tap a plot. Occupied plots swap facilities.':'Tap an outlined + plot to build. Drag to pan.');renderTools()}
+function expandYard(type=null){if(!game.expand())return;refresh();if(type&&game.money>=game.buildPrice(type))setMode({type});else say('5つの建設区画を開放。','Five more building plots unlocked.')}
+function renderYardStatus(){
+ yardStatus.replaceChildren();yardStatus.hidden=game.state!=='prep';if(yardStatus.hidden)return;
+ const used=game.facilities.length,total=game.facilityCapacity(),free=game.freePlots().length,locked=game.constructionPlots(true).some(p=>p.locked);
+ yardStatus.className=free?'':'plots-full';
+ const info=document.createElement('div');info.innerHTML=`<b>${bi(`建設区画 ${used}/${total}${free?'':' 使用中'}`,`Building plots ${used}/${total}${free?'':' · Full'}`)}</b><span class="plot-note">${bi(free?`残り${free}区画 · 「＋」に配置`:locked?'土地拡張で5区画を追加':'施設をタップ → 強化・入れ替え',free?'Build on the marked + foundations.':locked?'Expand to unlock five more plots.':'Tap a facility to upgrade or swap.')}</span>`;yardStatus.append(info);
+ if(locked){const cost=C.landPrice,lack=Math.max(0,cost-game.money),b=btn(`土地拡張 ¥${cost}`,lack?`Need ¥${lack} more`:'+5区画 / +5 plots',()=>expandYard(),free?'':'primary',lack>0);b.dataset.guide='expand';yardStatus.append(b)}
+}
+function showBuildLimit(type=null){
+ mode=null;closeDetail();renderTools();const d=$('#detail'),locked=game.constructionPlots(true).some(p=>p.locked),total=game.facilityCapacity();
+ d.innerHTML=`<h3>${bi(`建設区画 ${total}/${total} 使用中`,`All ${total} building plots are occupied`)}</h3><p>${bi(locked?'土地を拡張すると、鍵の付いた5区画に建てられます。':'すべての建設区画を使用中。施設の強化・入れ替えで効率を上げましょう。',locked?'Expand the land to unlock the five marked foundations.':'All plots are occupied. Upgrade or swap facilities to improve your routes.')}</p>`;
+ if(locked){const lack=Math.max(0,C.landPrice-game.money);d.append(btn(`土地拡張 ¥${C.landPrice}`,lack?`Need ¥${lack} more`:'Unlock 5 plots',()=>expandYard(type),'primary',lack>0));if(lack){const p=document.createElement('p');p.innerHTML=bi(`土地拡張にはあと¥${lack}必要です。`,`Expansion needs ¥${lack} more.`);d.append(p)}}
+ d.append(btn('閉じる','Close',closeDetail));
+}
+function requestBuild(type){if(!game.freePlots().length){showBuildLimit(type);return}if(game.money>=game.buildPrice(type))setMode({type})}
 function renderTools(){const t=$('#view-tools');t.replaceChildren();t.hidden=!['prep','wave'].includes(game.state);if(t.hidden)return;
 t.append(btn('−','Zoom out',()=>{renderer.camera.zoomAt(1/1.25);updateZoom()},'zoom-button'));
 const z=document.createElement('output');z.id='zoom-value';z.setAttribute('aria-live','polite');t.append(z);
@@ -33,9 +50,9 @@ const d=$('#detail');d.replaceChildren();selected=null;const h=document.createEl
 const list=document.createElement('div');list.className='oni-list';
 for(const o of onis){const f=game.facilities.find(f=>f.id===o.facility);const b=btn(`小鬼 #${o.id} · ${F[o.type].name} ★`,`Oni #${o.id} · ${FE[o.type]} specialist`,()=>{selected={kind:'oni',id:o.id};renderer.camera.focus(o.x+.5,o.y+.5);detail()},'oni-choice');b.insertAdjacentHTML('afterbegin',`<img src="assets/oni-${o.type}-v014.webp" alt="">`);b.dataset.oniId=o.id;b.style.borderLeft=`5px solid ${F[o.type].color}`;const info=document.createElement('span');info.className='roster-info';info.innerHTML=bi(`${traits[o.trait].name} ／ ${F[f.type].name} #${f.id}`,`${TE[o.trait][0]} / ${FE[f.type]} #${f.id}`);b.append(info);list.append(b)}
 if(!onis.length)list.innerHTML=`<p>${bi('担当なし','No assigned Oni')}</p>`;d.append(list,btn('閉じる','Close',closeDetail))}
-function ui(){const state=game.state;if(lastState===state)return;lastState=state;const ov=$('#overlay'),ctl=$('#controls');ov.replaceChildren();ctl.replaceChildren();closeDetail();mode=null;renderTools();
+function ui(){const state=game.state;if(lastState===state)return;lastState=state;const ov=$('#overlay'),ctl=$('#controls');ov.replaceChildren();ctl.replaceChildren();closeDetail();mode=null;renderTools();renderYardStatus();
 if(state==='title'){
-ov.innerHTML='<div class="panel opening-panel"><button class="opening-art" id="opening-art" aria-label="ブラウザで今すぐプレイ / Play Now in Your Browser"><img src="assets/opening-v014.webp" alt="リサイクルの鬼 / RECYCLE ONI — まだ使える。小鬼と親方のリサイクル拠点"></button><div class="opening-footer"><div><b>RECYCLE ONI / v0.1.7</b><p>小鬼と施設を配置して8回の回収日へ。<br>Arrange your yard. Survive 8 collection days.</p></div><a class="portal-button" href="https://dear-next-light.pages.dev/" target="_blank" rel="noopener noreferrer">Dear Next Light ↗<span class="en">作品ポータル / Games &amp; more</span></a></div></div>';
+ov.innerHTML=`<div class="panel opening-panel"><button class="opening-art" id="opening-art" aria-label="ブラウザで今すぐプレイ / Play Now in Your Browser"><img src="assets/opening-v014.webp" alt="リサイクルの鬼 / RECYCLE ONI — まだ使える。小鬼と親方のリサイクル拠点"></button><div class="opening-footer"><div><b>RECYCLE ONI / v0.1.8</b><p>小鬼と施設を配置して8回の回収日へ。<br>Arrange your yard. Survive 8 collection days.</p></div><a class="portal-button" href="https://dear-next-light.pages.dev/" target="_blank" rel="noopener noreferrer">${bi(PORTAL_LABEL,'More games! Visit DearNextLight')}</a></div></div>`;
 $('#opening-art').onclick=()=>{sound.init();game.prepare();refresh()};
 ov.querySelector('.opening-footer').insertAdjacentHTML('beforeend',`<small>BEST ¥${saved.profit.toLocaleString()}<br>回避 / Diversion ${Math.round(saved.avoid*100)}% · FLOW ${saved.flow} · ${saved.rank}</small>`);
 say('まだ使える。');return}
@@ -50,10 +67,10 @@ $('#replay').append(btn('もう一度遊ぶ','Play again',()=>{game.reset();save
 if(state==='prep'){
 const hint=document.createElement('span');hint.className='hint';hint.innerHTML=bi(`次：${W[game.wave].name} ｜ ${W[game.wave].hint}`,`Next: ${WE[game.wave][0]} · ${WE[game.wave][1]}`);ctl.append(hint);
 const build=document.createElement('div');build.className='build-strip';
-for(const [type,f]of Object.entries(F)){const b=btn(`${f.name} ¥${f.price}`,FE[type],()=>setMode({type}),'',game.money<f.price||game.facilities.length>=game.facilityCapacity());b.dataset.guide='build-'+type;b.style.setProperty('--facility-color',palette[type]);b.insertAdjacentHTML('afterbegin',`<span class="facility-icon" aria-hidden="true">${icons[type]}</span>`);build.append(b)}
-const oniCap=game.oniCapacity(),teamFull=game.onis.length>=oniCap;build.append(btn(`小鬼 + ¥${C.oniPrice}（${game.onis.length}/${oniCap}）`,`Hire Oni · ${game.onis.length}/${oniCap}`,()=>{if(game.recruit())refresh();else say('施設の小鬼枠が満員。','Oni slots are full. Build another facility.')},'',game.money<C.oniPrice||game.onis.length>=C.maxOni||teamFull));
+for(const [type,f]of Object.entries(F)){const full=!game.freePlots().length,cost=game.buildPrice(type),b=btn(`${f.name} ¥${cost}`,`${FE[type]}${full?' · Full':''}`,()=>requestBuild(type),full?'needs-plot':'',!full&&game.money<cost);b.dataset.guide='build-'+type;b.style.setProperty('--facility-color',palette[type]);b.insertAdjacentHTML('afterbegin',`<span class="facility-icon" aria-hidden="true">${icons[type]}</span>`);build.append(b)}
+const oniCap=game.oniCapacity(),teamFull=game.onis.length>=oniCap,cost=game.hirePrice();build.append(btn(`小鬼 + ¥${cost}（${game.onis.length}/${oniCap}）`,`Hire Oni · ${game.onis.length}/${oniCap}`,()=>{if(game.recruit())refresh();else say('施設の小鬼枠が満員。','Oni slots are full. Build another facility.')},'',game.money<cost||game.onis.length>=C.maxOni||teamFull));
 build.lastElementChild.dataset.guide='hire';
-build.append(btn(`土地 ¥${C.landPrice}`,game.land===14?`Plots ${game.facilities.length}/${game.facilityCapacity()}`:`Expand · 5→${C.maxFacilities} plots`,()=>{game.expand();refresh()},'',game.land===14||game.money<C.landPrice));ctl.append(build);
+ctl.append(build);
 ctl.append(btn(`Wave ${game.wave+1} 開始 →`,'Start Wave',()=>{sound.init();game.startWave();refresh()},'primary start-wave'));ctl.lastElementChild.dataset.guide='start';say('')}
 if(state==='wave'){
 ctl.append(btn('👹 まだ使える！','Rally! · 6 seconds',()=>{if(game.command())refresh()},'primary rally',game.shoutUsed));ctl.lastElementChild.dataset.guide='rally';const h=document.createElement('span');h.className='hint';h.innerHTML=bi('号令は1Waveに1回。配置変更はWave間。','Rally once per Wave. Reassign between Waves.');ctl.append(h);say('まだ使える。')}
@@ -63,7 +80,7 @@ if(selected.kind==='facility'){
 const f=game.facilities.find(f=>f.id===selected.id),assigned=game.onis.filter(o=>o.facility===f.id);
 d.innerHTML=`<span class="selection-icon" aria-hidden="true">${icons[f.type]}</span><h3>${bi(`${F[f.type].name} #${f.id} · Lv.${f.level}`,FE[f.type])}</h3><p>${bi(`入力 ${f.input.length}/${game.capacity(f)} ／ 処理中 ${f.jobs.length} ／ 待ち ${f.output.length}`,'Input / Processing / Output queue')}</p><p>${bi(game.synergy(f)>1?'隣接連携：処理 +10%':'近い施設ほど運搬が速い',game.synergy(f)>1?'Nearby synergy: processing +10%':'Shorter routes mean faster deliveries.')}</p>`;
 d.append(btn(`担当小鬼 ${assigned.length}/${C.oniPerFacility}体`,`Assigned Oni ${assigned.length}/${C.oniPerFacility}`,()=>roster(assigned,`${F[f.type].name}の小鬼`,`${FE[f.type]} team`),'team-button'));
-if(game.state==='prep'){d.append(btn('施設を移動','Move facility',()=>setMode({move:f.id})));d.append(btn(`Lv.UP ¥${C.levelPrice*f.level}`,'Upgrade facility',()=>{game.level(f.id);refresh()},'',game.money<C.levelPrice*f.level||f.level>=4))}
+if(game.state==='prep'){d.append(btn('移動・入れ替え','Move / swap',()=>setMode({move:f.id})));if(f.level<4)d.append(btn(`Lv.UP ¥${game.levelPrice(f.id)}`,'Upgrade facility',()=>{game.level(f.id);refresh()},'',game.money<game.levelPrice(f.id)));else{const p=document.createElement('p');p.innerHTML=bi('設備強化は最大です。','Facility fully upgraded.');d.append(p)}}
 }else{
 const o=game.onis.find(o=>o.id===selected.id),f=game.facilities.find(f=>f.id===o.facility);
 d.innerHTML=`<img class="detail-portrait" src="assets/oni-${o.type}-v014.webp" alt=""><h3>${bi(`小鬼 #${o.id}`,`Oni #${o.id}`)}</h3><p>${bi(`得意：${F[o.type].name}（作業 +25%）`,`Specialty: ${FE[o.type]} · Work +25%`)}</p><p>${bi(`${traits[o.trait].name}：${traits[o.trait].desc}`,`${TE[o.trait][0]}: ${TE[o.trait][1]}`)}</p><p>${bi(`体力 ${Math.round(o.stamina)}/${o.max}`,`Stamina ${Math.round(o.stamina)}/${o.max}`)}</p><p>${bi(`担当：${F[f.type].name} #${f.id}`,`Assigned: ${FE[f.type]} #${f.id}`)}</p>`;
@@ -72,11 +89,11 @@ for(const f of game.facilities){const option=document.createElement('option'),co
 d.append(btn('他の小鬼を選ぶ','Back to roster',()=>roster(game.onis)))}
 d.append(btn('閉じる','Close',closeDetail))}
 function tap(e){if(!['prep','wave'].includes(game.state))return;const p=renderer.point(e);
-if(mode&&game.state==='prep'){const ok=mode.move?game.move(mode.move,p.x,p.y):game.build(mode.type,p.x,p.y);if(ok){refresh();say('……よし。')}else say('資金・空き地・入口を確認。','Check funds, free space and entrances.');return}
+if(mode&&game.state==='prep'){const plot=game.placementAt(p,true);if(plot?.locked){showBuildLimit(mode.type);return}const ok=plot&&(mode.move?game.move(mode.move,plot.x,plot.y):game.build(mode.type,plot.x,plot.y));if(ok){refresh();say('……よし。')}else say('「＋」の建設区画を選んでください。','Choose an outlined + building plot.');return}
 const r=$('#game').getBoundingClientRect(),v=renderer.camera.view,x=e.clientX-r.left,y=e.clientY-r.top;
 const hits=game.onis.filter(o=>Math.hypot(v.x+(o.x+.5)*v.scale-x,v.y+(o.y+.5)*v.scaleY-y)<=Math.max(22,v.scale*.42));
 const f=game.facilities.find(f=>p.x>=f.x&&p.x<f.x+2&&p.y>=f.y&&p.y<f.y+2);
-if(f){selected={kind:'facility',id:f.id};detail()}else if(hits.length>1){roster(hits,'ここにいる小鬼','Oni at this spot')}else if(hits.length){selected={kind:'oni',id:hits[0].id};detail()}else closeDetail()}
+if(f){selected={kind:'facility',id:f.id};detail()}else if(hits.length>1){roster(hits,'ここにいる小鬼','Oni at this spot')}else if(hits.length){selected={kind:'oni',id:hits[0].id};detail()}else if(game.state==='prep'&&game.placementAt(p,true)?.locked)showBuildLimit();else closeDetail()}
 bindGestures($('#game'),renderer.camera,tap,updateZoom);
 function muteLabel(){$('#mute').innerHTML=bi(sound.muted?'音 OFF':'音 ON',sound.muted?'Muted':'Sound on')}
 $('#mute').onclick=()=>{sound.init();sound.muted=!sound.muted;saved.muted=sound.muted;persist();muteLabel()};muteLabel();
@@ -97,7 +114,7 @@ requestAnimationFrame(frame)}
 ui();updateHud();requestAnimationFrame(frame);
 
 function setupResultSharing(){
- const creator=document.createElement('a');creator.href='https://dear-next-light.pages.dev/';creator.target='_blank';creator.rel='noopener noreferrer';creator.className='creator-link';creator.innerHTML=bi('DearNextLightへ →','Visit DearNextLight');$('#creator-link').append(creator);
+ const creator=document.createElement('a');creator.href='https://dear-next-light.pages.dev/';creator.target='_blank';creator.rel='noopener noreferrer';creator.className='creator-link';creator.innerHTML=bi(PORTAL_LABEL,'More games! Visit DearNextLight');$('#creator-link').append(creator);
  const text=`リサイクルの鬼 / RECYCLE ONI\n${game.clear?'8Waveクリア！ / All 8 waves clear!':'Wave '+game.wave+' / Run finished'} · Rank ${game.rank}\n利益 / Profit ¥${game.profit.toLocaleString()} · 焼却回避 / Waste diverted ${Math.floor(game.judgement.avoid*100)}% · 処理完了 / Fully recycled ${Math.floor(game.judgement.completion*100)}% · ONI FLOW ×${game.maxFlow}`;
  const url='https://recycle-oni.pages.dev/';
  const share=btn('結果をシェア','Share results',async()=>{
